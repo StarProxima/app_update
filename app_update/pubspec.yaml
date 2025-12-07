@@ -32,7 +32,10 @@ dev_dependencies:
   mocktail: ^1.0.0
 
   project_kit:
-    path: ../unpublished/project_kit
+    git:
+      url: https://github.com/StarProxima/dev_kit
+      ref: develop
+      path: unpublished/project_kit
     
   clock: ^1.1.1
   path: ^1.8.0
