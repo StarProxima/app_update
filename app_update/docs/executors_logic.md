@@ -487,3 +487,345 @@ class ApkInstallExecutor implements UpdateExecutor {
 7. **Stream-based API** — единый интерфейс для всех типов обновлений с отслеживанием прогресса
 
 8. **Контроллер управляет lifecycle** — решает проблему stateful executor, контроллер знает какой executor активен
+
+---
+
+## Конфигурация executor'ов через YAML API
+
+### Концепция
+
+Настройки executor'ов задаются в YAML-конфиге как поле `executor` внутри `data` секции `sources`, рядом с `update_url`. Это обеспечивает:
+
+1. **Естественную привязку** — executor логически связан с источником и URL обновления
+2. **Гибкость через when** — разные настройки для разных условий (статус, платформа, locale)
+3. **Полную развязку** — app_update не знает о конкретных executor'ах, передаёт сырые данные в плагины
+4. **Соответствие Source+Platform↔Executor** — настройки определяются в контексте конкретного источника
+
+### Структура поля executor
+
+```yaml
+executor:
+  name: inAppUpdate          # Обязательно: имя зарегистрированного executor'а
+  # ... любые другие поля — настройки конкретного executor'а
+  update_type: flexible
+  stale_days: 5
+```
+
+Поле `executor` — это `Map<String, dynamic>` с обязательным полем `name`. Остальные поля — произвольные настройки, которые executor сам парсит при выполнении.
+
+### Пример конфигурации
+
+```yaml
+sources:
+  - name: googlePlay
+    platforms: [android]
+    content:
+      # Дефолтный executor для Google Play
+      - data:
+          update_url: "https://play.google.com/store/apps/details?id=$appPackageName"
+          executor:
+            name: inAppUpdate
+            update_type: flexible
+            stale_days: 5
+
+      # Для критических статусов — принудительное обновление
+      - when: { app_status_is: [deprecated, unsupported] }
+        data:
+          executor:
+            name: inAppUpdate
+            update_type: immediate
+
+  - name: github
+    platforms: [android, windows, macos, linux]
+    content:
+      # Android — установка APK
+      - when: { platform_is: android }
+        data:
+          update_url: "https://github.com/user/repo/releases/download/v$releaseVersion/app.apk"
+          executor:
+            name: apkInstall
+            show_notification: true
+            checksum_url: "https://github.com/user/repo/releases/download/v$releaseVersion/checksums.txt"
+
+      # Desktop — редирект на страницу релизов (executor не указан)
+      - when: { platform_is: [windows, macos, linux] }
+        data:
+          update_url: "https://github.com/user/repo/releases/latest"
+          # executor не указан → автоопределение
+
+  - name: appStore
+    platforms: [ios, macos]
+    content:
+      - data:
+          update_url: "https://apps.apple.com/app/id123"
+          # executor не указан → storeRedirect (iOS не поддерживает in-app updates)
+```
+
+### UpdateExecutorConfig
+
+Типизированная обёртка над настройками executor'а из YAML:
+
+```dart
+class UpdateExecutorConfig {
+  /// Имя executor'а (обязательное поле в YAML)
+  final String? name;
+  
+  /// Сырые настройки из YAML (без поля 'name')
+  final Map<String, dynamic> settings;
+  
+  const UpdateExecutorConfig({
+    this.name,
+    this.settings = const {},
+  });
+  
+  factory UpdateExecutorConfig.fromMap(Map<String, dynamic>? map) {
+    if (map == null) return const UpdateExecutorConfig();
+    final settings = Map<String, dynamic>.from(map)..remove('name');
+    return UpdateExecutorConfig(
+      name: map['name'] as String?,
+      settings: settings,
+    );
+  }
+}
+```
+
+### Логика выбора executor'а в executeUpdate()
+
+```dart
+Future<UpdateExecutionResult?> executeUpdate(Update update) async {
+  final executorConfig = update.content.executor;
+  
+  UpdateExecutor? executor;
+  
+  if (executorConfig.name != null) {
+    // 1. Executor указан явно — ищем по имени
+    executor = _executors.firstWhereOrNull(
+      (e) => e.name.name == executorConfig.name,
+    );
+    // Если указан, но не зарегистрирован — возвращаем null
+    if (executor == null) return null;
+  } else {
+    // 2. Executor не указан — автоопределение по Source+Platform
+    executor = _executors.firstWhereOrNull(
+      (e) => e.supports(update),
+    );
+    // Если нет подходящего — возвращаем null
+    if (executor == null) return null;
+  }
+  
+  // Парсим настройки и запускаем
+  await executor.parseSettings(executorConfig);
+  return _execute(executor, update);
+}
+```
+
+### Метод parseSettings()
+
+Интерфейс `UpdateExecutor` расширяется методом `parseSettings()`:
+
+```dart
+abstract interface class UpdateExecutor {
+  UpdateExecutorName get name;
+  
+  bool supports(Update update);
+  
+  /// Парсит и применяет настройки из YAML-конфига
+  /// Вызывается перед execute() для конфигурирования executor'а
+  Future<void> parseSettings(UpdateExecutorConfig config);
+  
+  /// Запускает процесс обновления (сигнатура не изменилась)
+  Stream<UpdateExecutionProgress> execute(Update update);
+  
+  Future<void> cancel();
+}
+```
+
+**Преимущества отдельного метода:**
+- Разделение настройки и выполнения
+- Сигнатура `execute()` остаётся чистой
+- Асинхронный парсинг (если нужна валидация через сеть)
+- Возможность выбросить исключение при невалидных настройках до начала выполнения
+
+### Пример реализации executor'а
+
+```dart
+class InAppUpdateExecutor implements UpdateExecutor {
+  // Типизированные настройки, заполняются в parseSettings()
+  InAppUpdateSettings _settings = const InAppUpdateSettings();
+  
+  @override
+  UpdateExecutorName get name => UpdateExecutorName.inAppUpdate;
+  
+  @override
+  bool supports(Update update) =>
+    update.sourceName == UpdateSourceName.googlePlay &&
+    update.platform == UpdatePlatform.android;
+  
+  @override
+  Future<void> parseSettings(UpdateExecutorConfig config) async {
+    // Парсим настройки один раз перед выполнением
+    _settings = InAppUpdateSettings.fromMap(config.settings);
+  }
+  
+  @override
+  Stream<UpdateExecutionProgress> execute(Update update) async* {
+    // Используем уже распарсенные настройки
+    yield const UpdateExecutionStarted();
+    
+    if (_settings.updateType == UpdateType.immediate) {
+      // Immediate update: блокирующий UI
+      await InAppUpdate.performImmediateUpdate();
+      yield const UpdateExecutionCompleted();
+      return;
+    }
+    
+    // Flexible update: загрузка в фоне
+    await for (final event in InAppUpdate.startFlexibleUpdate()) {
+      yield UpdateExecutionDownloading(
+        progress: event.bytesDownloaded / event.totalBytesToDownload,
+        bytesDownloaded: event.bytesDownloaded,
+        totalBytes: event.totalBytesToDownload,
+      );
+    }
+    
+    // Ожидаем подтверждения от пользователя
+    final completer = Completer<void>();
+    yield UpdateExecutionDownloaded(
+      downloadedUpdate: DownloadedUpdate(...),
+      startInstallation: () => completer.complete(),
+    );
+    await completer.future;
+    
+    yield const UpdateExecutionInstalling();
+    await InAppUpdate.completeFlexibleUpdate();
+    yield const UpdateExecutionCompleted();
+  }
+  
+  @override
+  Future<void> cancel() async {
+    // Отмена обновления
+  }
+}
+
+/// Типизированные настройки для InAppUpdate
+class InAppUpdateSettings {
+  final UpdateType updateType;
+  final int staleDays;
+  
+  const InAppUpdateSettings({
+    this.updateType = UpdateType.flexible,
+    this.staleDays = 0,
+  });
+  
+  factory InAppUpdateSettings.fromMap(Map<String, dynamic> map) {
+    return InAppUpdateSettings(
+      updateType: UpdateType.fromString(map['update_type'] as String?),
+      staleDays: map['stale_days'] as int? ?? 0,
+    );
+  }
+}
+
+enum UpdateType {
+  flexible,
+  immediate;
+  
+  static UpdateType fromString(String? value) =>
+    UpdateType.values.firstWhere(
+      (e) => e.name == value,
+      orElse: () => UpdateType.flexible,
+    );
+}
+```
+
+### Мердж настроек executor'а
+
+Настройки executor'а мерджатся по стандартным правилам API v4:
+
+```yaml
+content:
+  # Базовые настройки
+  - data:
+      executor:
+        name: inAppUpdate
+        update_type: flexible
+        stale_days: 5
+        
+  # Переопределение для unsupported — только update_type
+  - when: { app_status_is: unsupported }
+    data:
+      executor:
+        update_type: immediate
+        # name и stale_days наследуются из базового правила
+```
+
+**Результат для `app_status: unsupported`:**
+```yaml
+executor:
+  name: inAppUpdate       # из базового
+  update_type: immediate  # переопределено
+  stale_days: 5           # из базового
+```
+
+### Модель данных
+
+```dart
+class UpdateContentData {
+  final String? updateUrl;
+  final String? title;
+  final String? description;
+  // ... другие поля контента
+  
+  /// Настройки executor'а (сырые данные из YAML)
+  /// Содержит 'name' и произвольные настройки конкретного executor'а
+  final Map<String, dynamic>? executor;
+  
+  const UpdateContentData({
+    this.updateUrl,
+    this.title,
+    this.description,
+    this.executor,
+    // ...
+  });
+}
+```
+
+### Преимущества подхода
+
+| Аспект | Описание |
+|--------|----------|
+| **Простота** | Не нужна отдельная секция, executor рядом с update_url |
+| **Гибкость** | Разные executor'ы/настройки для разных when-условий |
+| **Развязка** | app_update не знает о реализациях, передаёт сырой Map |
+| **Типобезопасность** | Каждый executor сам парсит свои настройки в типизированную структуру |
+| **Расширяемость** | Новый executor = новый плагин, без изменений в app_update |
+| **Явность** | Source+Platform↔Executor соответствие видно в конфиге |
+| **Разделение ответственности** | `parseSettings()` — настройка, `execute()` — выполнение |
+| **Валидация до выполнения** | Ошибки конфига выбрасываются в `parseSettings()`, до начала обновления |
+
+### Сценарии поведения executeUpdate()
+
+| Условие | Результат |
+|---------|-----------|
+| `executor.name` указан и зарегистрирован | Используется указанный executor |
+| `executor.name` указан, но НЕ зарегистрирован | `return null` |
+| `executor` не указан, есть подходящий по `supports()` | Используется первый подходящий (по приоритету) |
+| `executor` не указан, нет подходящего | `return null` |
+
+### Регистрация executor'ов в приложении
+
+```dart
+final controller = UpdateController(
+  fetchers: [...],
+  updateExecutors: [
+    // Порядок = приоритет для автоопределения
+    InAppUpdateExecutor(),     // 1. Google Play In-App Updates
+    ApkInstallExecutor(),      // 2. APK Install
+    StoreRedirectExecutor(),   // 3. Fallback — открытие URL
+  ],
+);
+```
+
+**Важно:** Executor'ы регистрируются на этапе сборки приложения (compile-time), а конфиг определяет какие из них использовать для конкретных источников (runtime). Это позволяет:
+- Включить все возможные executor'ы в сборку
+- Гибко управлять их использованием через удалённый конфиг
+- Не менять код приложения для изменения стратегии обновления
