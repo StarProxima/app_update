@@ -8,9 +8,11 @@ import 'package:url_launcher/url_launcher.dart';
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_fetcher_coordinator.dart';
 import '../fetcher/update_config_source_fetcher.dart';
+import '../installer/update_installer.dart';
 import '../linker/update_linker.dart';
 import '../models/release/update.dart';
 import '../models/release/update_data.dart';
+import '../models/update_installation/update_installation_result.dart';
 import '../models/update_result/update_result.dart';
 import '../models/update_search/update_search_config.dart';
 import '../models/update_status/update_status.dart';
@@ -32,6 +34,8 @@ class UpdateControllerImpl implements UpdateController {
   @protected
   final List<UpdateConfigFetcher> fetchers;
   @protected
+  final List<UpdateInstaller> updateInstallers;
+  @protected
   final UpdateStorage? storage;
   @protected
   late final PackageInfo packageInfo;
@@ -46,6 +50,10 @@ class UpdateControllerImpl implements UpdateController {
   bool get isInitialized => initCompleter?.isCompleted ?? false;
   @protected
   List<UpdateData>? updates;
+
+  // Текущий активный Installer для управления lifecycle
+  @protected
+  UpdateInstaller? _activeInstaller;
 
   // Dependencies, can be overridden
 
@@ -91,6 +99,7 @@ class UpdateControllerImpl implements UpdateController {
 
   UpdateControllerImpl({
     this.fetchers = UpdateConfigSourceFetcher.defaultFetchers,
+    this.updateInstallers = const [],
     this.storage,
   });
 
@@ -244,7 +253,32 @@ class UpdateControllerImpl implements UpdateController {
   }
 
   @override
+  Future<UpdateInstallationResult?> installUpdate(Update update) async {
+    throw Exception('Not impl');
+  }
+
+  @override
+  Future<void> confirmUpdateInstallation() async {
+    if (_activeInstaller == null) {
+      throw Exception('No active installer to confirm');
+    }
+
+    await _activeInstaller!.confirmInstallation();
+  }
+
+  @override
+  Future<void> cancelUpdateInstallation() async {
+    if (_activeInstaller == null) {
+      throw Exception('No active installer to cancel');
+    }
+
+    await _activeInstaller!.cancelInstallation();
+    _activeInstaller = null;
+  }
+
+  @override
   void dispose() {
     onFetchStreamController.close();
+    _activeInstaller = null;
   }
 }
