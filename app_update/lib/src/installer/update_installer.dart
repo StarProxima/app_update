@@ -1,0 +1,33 @@
+import 'dart:async';
+
+import '../entities/update_installer_name.dart';
+import '../models/release/update.dart';
+import '../models/update_installation/update_installation_progress.dart';
+import 'update_installer_config.dart';
+import 'update_installer_config_parser.dart';
+
+/// Интерфейс исполнителя обновлений
+///
+/// Реализуется в плагинах для разных платформ и способов обновления
+abstract interface class UpdateInstaller {
+  /// Возвращает парсер настроек Installer'а
+  ///
+  /// Используется в UpdateController во время основного парсинга YAML
+  UpdateInstallerConfigParser createConfigParser();
+
+  UpdateInstallerName get name;
+
+  /// Проверяет, поддерживает ли исполнитель данное обновление
+  bool supports(Update update);
+
+  /// Запускает процесс обновления
+  Stream<UpdateInstallationProgress> install(
+    Update update,
+    UpdateInstallerConfig? config,
+  );
+
+  /// Продолжает установку после состояния Downloaded с флагом isNeedConfirm
+  Future<void> confirmInstallation();
+
+  Future<void> cancelInstallation();
+}

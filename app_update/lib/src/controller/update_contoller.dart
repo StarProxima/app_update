@@ -4,7 +4,9 @@ import 'dart:async';
 
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_source_fetcher.dart';
+import '../installer/update_installer.dart';
 import '../models/release/update.dart';
+import '../models/update_installation/update_installation_result.dart';
 import '../models/update_result/update_result.dart';
 import '../models/update_search/update_search_config.dart';
 import '../models/update_settings/update_settings_data.dart';
@@ -29,10 +31,12 @@ abstract interface class UpdateController {
   factory UpdateController({
     List<UpdateConfigFetcher> fetchers =
         UpdateConfigSourceFetcher.defaultFetchers,
+    List<UpdateInstaller> updateInstallers = const [],
     UpdateStorage? storage,
   }) =>
       UpdateControllerImpl(
         fetchers: fetchers,
+        updateInstallers: updateInstallers,
         storage: storage,
       );
 
@@ -65,6 +69,16 @@ abstract interface class UpdateController {
 
   /// Launches a link to the correct store to update the app.
   Future<void> launchUpdateUrl(Update update);
+
+  /// Запустить обновление подходящим исполнителем
+  /// Возвращает null если нет подходящего исполнителя
+  Future<UpdateInstallationResult?> installUpdate(Update update);
+
+  /// Подтвердить продолжение выполнения обновления
+  Future<void> confirmUpdateInstallation();
+
+  /// Отменить текущее обновление
+  Future<void> cancelUpdateInstallation();
 
   /// Dispose controller.
   void dispose();
