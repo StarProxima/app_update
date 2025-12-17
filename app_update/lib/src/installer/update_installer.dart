@@ -29,5 +29,6 @@ abstract interface class UpdateInstaller {
   /// Продолжает установку после состояния Downloaded с флагом isNeedConfirm
   Future<void> confirmInstallation();
 
+  /// Отменяет установку
   Future<void> cancelInstallation();
 }
