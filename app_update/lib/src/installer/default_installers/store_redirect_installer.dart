@@ -62,7 +62,7 @@ class StoreRedirectInstaller implements UpdateInstaller {
       final launched = await launchUrl(uri, mode: launchMode);
       if (!launched) {
         yield UpdateInstallationFailed(
-          'Failed to launch update URL: $urlString',
+          'Return false on launch update URL: $urlString',
         );
         return;
       }
