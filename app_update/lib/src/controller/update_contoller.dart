@@ -67,9 +67,6 @@ abstract interface class UpdateController {
   /// Также откладывает показ всех обновлений на [UpdateSettingsData.postponeAllReleasesDelay].
   Future<void> postponeUpdate(Update update);
 
-  /// Launches a link to the correct store to update the app.
-  Future<void> launchUpdateUrl(Update update);
-
   /// Запустить обновление подходящим исполнителем
   /// Возвращает null если нет подходящего исполнителя
   Future<UpdateInstallationResult?> installUpdate(Update update);

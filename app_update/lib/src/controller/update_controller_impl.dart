@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_fetcher_coordinator.dart';
@@ -99,7 +98,7 @@ class UpdateControllerImpl implements UpdateController {
 
   UpdateControllerImpl({
     this.fetchers = UpdateConfigSourceFetcher.defaultFetchers,
-    this.updateInstallers = const [],
+    this.updateInstallers = UpdateInstaller.defaultInstallers,
     this.storage,
   });
 
@@ -231,15 +230,6 @@ class UpdateControllerImpl implements UpdateController {
     }
 
     return result;
-  }
-
-  @override
-  Future<void> launchUpdateUrl(Update update) async {
-    final uri = Uri.parse(update.content.updateUrl);
-
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
   }
 
   @override
