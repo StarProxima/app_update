@@ -344,162 +344,47 @@ result.progress.listen((progress) {
 
 ### Концепция
 
-Настройки Installer'ов задаются в YAML-конфиге как поле `Installer` внутри `data` секции `sources`, рядом с `update_url`. Это обеспечивает:
+`installer` интегрируется в API v4 как **отдельный тип правил**, на одном уровне с
+`content`, `settings` и `app_settings`. Это решает две проблемы:
 
-1. **Естественную привязку** — Installer логически связан с источником и URL обновления
-2. **Гибкость через when** — разные настройки для разных условий (статус, платформа, locale)
-3. **Полную развязку** — app_update не знает о конкретных Installer'ах, передаёт сырые данные в плагины
-4. **Соответствие Source+Platform↔Installer** — настройки определяются в контексте конкретного источника
+Мысли о том, как конфиг устроить. Читать много! Так что читай как будет время
 
-### Структура поля Installer
+Короче, у нас есть основные сущности:
+release, source, platform.
+Выдавая Update финальный мы берём нынешний platform, находим лучший release и крепим к нему подходящий source (если очень просто и без правил)
 
-```yaml
-installer:
-  name: inAppUpdate          # Обязательно: имя зарегистрированного Installer'а
-  # ... любые другие поля — настройки конкретного Installer'а
-  update_type: flexible
-  stale_days: 5
-```
+Нам необходимо добавить в эту схему ещё одну сущность - intaller
+По логике сборке, мы должны для нынешнего platform находить также лучший release, крепим к нему подходящий source и на основании platform и source выбранных, пикается installer. То есть схема зависимостей такая:
 
-Поле `Installer` — это `Map<String, dynamic>` с обязательным полем `name`. Остальные поля — произвольные настройки, которые Installer сам парсит при выполнении.
+platform - release - source
+    |                  |
+      \              /
+          installer 
 
-### Пример конфигурации
+Что есть цикл, что хуёво. Но так как у нас есть логика обхода, получаем то есть типо дерево (циклов нет, но только из-за однонаправленности):
 
-```yaml
-sources:
-  - name: googlePlay
-    platforms: [android]
-    content:
-      # Дефолтный Installer для Google Play
-      - data:
-          update_url: "https://play.google.com/store/apps/details?id=$appPackageName"
-          installer:
-            name: inAppUpdate
-            update_type: flexible
-            stale_days: 5
 
-      # Для критических статусов — принудительное обновление
-      - when: { app_status_is: [deprecated, unsupported] }
-        data:
-          installer:
-            name: inAppUpdate
-            update_type: immediate
+platform -> release -> source
+    |                    |
+      \                /
+        >  installer <
 
-  - name: github
-    platforms: [android, windows, macos, linux]
-    content:
-      # Android — установка APK
-      - when: { platform_is: android }
-        data:
-          update_url: "https://github.com/user/repo/releases/download/v$releaseVersion/app.apk"
-          installer:
-            name: apkInstall
-            show_notification: true
-            checksum_url: "https://github.com/user/repo/releases/download/v$releaseVersion/checksums.txt"
+Так что результат решаемый. 
 
-      # Desktop — редирект на страницу релизов (Installer не указан)
-      - when: { platform_is: [windows, macos, linux] }
-        data:
-          update_url: "https://github.com/user/repo/releases/latest"
-          # Installer не указан → автоопределение
+Если идти согласно логике api, нам необходимо на глобальный уровень вынести installer и сделать возможность его определять у platform и source. То есть получим, что installer можно будет определить в местах:
+- глобальный корень (installer: рядом с content/settings/app_settings и т.д.);
+- глобальный источник (sources[*].installer);
+- глобальная платформа источника (sources[*].platforms[*].installer);
+- источник релиза (releases[*].sources[*].installer);
+- платформа релиза (releases[*].sources[*].platforms[*].installer).
 
-  - name: appStore
-    platforms: [ios, macos]
-    content:
-      - data:
-          update_url: "https://apps.apple.com/app/id123"
-          # Installer не указан → storeRedirect (iOS не поддерживает in-app updates)
-```
 
-### UpdateInstallerConfig
+Логика тогда такая: 
+При парсинге парсим только те инсталлеры, которые зарегистрированы в приложении. Остальные буквально игнорируем. Парсим их при помощи UpdateInstallerConfigParser. Получаем для каждого инсталлера UpdateInstallerConfig (а точнее имплементацию этой модельки)
+В линкере как обычно линкуем всех со всеми + инсталлеры подходящие. То есть в UpdateData появляется поле UpdateInstallerConfig? installer. Именно с ? - потому что также создаём и варианты UpdateData, где инсталлер null.
+Во время searchFull UpdateData с null на месте инсталлера будут уходить вниз по приоритетности, но зато у нас не будут блокаться вообще апдейты, если нет подходящего инсталлера.
+В общем, во время searchFull находим самый подходящий вариант updateData. Приоритет installer-ов аналогично сурсам в UpdateSearchData задаём
+Далее при resolve всё как обычно.
+В итоге получаем готовую модельку Update с UpdateInstallerConfig. При запуске installUpdate, мы по UpdateInstallerConfig.name берём UpdateInstaller и в его install закидываем Update и его настройки в UpdateInstallerConfig. Далее магия, которую мы обсуждали
 
-Типизированная обёртка над настройками Installer'а из YAML:
-
-```dart
-abstract class UpdateInstallerConfig {
-  /// Имя Installer'а (обязательное поле в YAML)
-  final String name;
-  
-  factory UpdateInstallerConfig.fromMap(Map<String, dynamic>? map);
-}
-```
-
-### UpdateInstallerConfigParser
-
-Интерфейс парсера настроек конкретного Installer'а:
-
-```dart
-/// Парсер настроек для конкретного исполнителя обновлений
-///
-/// Используется UpdateController во время основного парсинга:
-/// 1. Находит Installer по имени
-/// 2. Берёт его parser через createConfigParser()
-/// 3. Вызывает parser.parse(...) для получения UpdateInstallerConfig
-abstract interface class UpdateInstallerConfigParser {
-  /// Парсит Map из YAML в [UpdateInstallerConfig]
-  ///
-  /// [raw] — сырые данные из поля `Installer` (без доп. обработки).
-  UpdateInstallerConfig parse(Map<String, dynamic>? raw);
-}
-```
-
-**Преимущества:**
-- Простота API — один метод вместо двух
-- Настройки парсятся внутри Installer'а по мере необходимости
-- Легче тестировать — все параметры в одном месте
-
-### Мердж настроек Installer'а
-
-Настройки Installer'а мерджатся по стандартным правилам API v4:
-
-```yaml
-content:
-  # Базовые настройки
-  - data:
-      installer:
-        name: inAppUpdate
-        update_type: flexible
-        stale_days: 5
-        
-  # Переопределение для unsupported — только update_type
-  - when: { app_status_is: unsupported }
-    data:
-      installer:
-        update_type: immediate
-        # name и stale_days наследуются из базового правила
-```
-
-**Результат для `app_status: unsupported`:**
-```yaml
-installer:
-  name: inAppUpdate       # из базового
-  update_type: immediate  # переопределено
-  stale_days: 5           # из базового
-```
-
-### Модель данных
-
-```dart
-class UpdateContentData {
-  final String? updateUrl;
-  final String? title;
-  final String? description;
-  // ... другие поля контента
-  
-  /// Настройки Installer'а
-  final UpdateInstallerConfig? installer;
-  
-  const UpdateContentData({
-    this.updateUrl,
-    this.title,
-    this.description,
-    this.installer,
-    // ...
-  });
-}
-```
-
-**Важно:** Installer'ы регистрируются на этапе сборки приложения (compile-time), а конфиг определяет какие из них использовать для конкретных источников (runtime). Это позволяет:
-- Включить все возможные Installer'ы в сборку
-- Гибко управлять их использованием через удалённый конфиг
-- Не менять код приложения для изменения стратегии обновления
+В UpdateData и Update должна быть именно UpdateInstallerConfig, а не UpdateInstallerName (по аналогии с source), потому что source по сути дела хранит в себе только имя, а вот installer состоит из большего числа полей (потенциально). Поле updateUrl так-то просто часть UpdateContentConfig. Но напомню, что по дефолту UpdateInstallerConfig имеет только поле name. Остальные поля он получает в реализациях, так что считай одно и то же.
