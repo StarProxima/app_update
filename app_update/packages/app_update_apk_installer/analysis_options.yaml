@@ -1,4 +1,9 @@
-include: package:flutter_lints/flutter.yaml
+include: package:project_kit/analysis_options.yaml
 
-# Additional information about this file can be found at
-# https://dart.dev/guides/language/analysis-options
+
+dart_code_metrics:
+  rules:
+    prefer-correct-json-casts: false
+analyzer:
+  errors:
+    avoid_slow_async_io: ignore
