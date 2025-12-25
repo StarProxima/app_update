@@ -87,6 +87,11 @@ class StoreRedirectInstaller implements UpdateInstaller {
   Future<void> cancelInstallation() async {
     // Cant cancel
   }
+
+  @override
+  void dispose() {
+    // No resources to dispose.
+  }
 }
 
 final class StoreRedirectInstallerConfig extends UpdateInstallerConfig {

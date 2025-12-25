@@ -33,6 +33,9 @@ abstract interface class UpdateInstaller {
   /// Отменяет установку
   Future<void> cancelInstallation();
 
+  /// Освобождает ресурсы Installer'а
+  void dispose();
+
   static const defaultInstallers = [
     StoreRedirectInstaller(),
   ];

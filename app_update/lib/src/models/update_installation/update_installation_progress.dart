@@ -42,7 +42,12 @@ class UpdateInstallationDownloaded extends UpdateInstallationProgress {
 
 /// Установка обновления
 class UpdateInstallationExecuting extends UpdateInstallationProgress {
-  const UpdateInstallationExecuting();
+  /// Прогресс от 0.0 до 1.0. null если нет возможности его получить
+  final double? progress;
+
+  const UpdateInstallationExecuting({
+    this.progress,
+  });
 }
 
 /// Обновление успешно завершено (передано системе)

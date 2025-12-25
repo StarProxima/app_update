@@ -38,6 +38,9 @@ abstract interface class UpdateController {
   
   /// Отменить текущее обновление
   Future<void> cancelUpdateInstallation();
+
+  /// Освободить ресурсы контроллера и зарегистрированных installer-ов
+  void dispose();
 }
 ```
 
@@ -146,7 +149,12 @@ class UpdateInstallationDownloaded extends UpdateInstallationProgress {
 
 /// Установка обновления
 class UpdateInstallationExecuting extends UpdateInstallationProgress {
-  const UpdateInstallationExecuting();
+  /// Прогресс от 0.0 до 1.0. null если нет возможности его получить
+  final double? progress;
+
+  const UpdateInstallationExecuting({
+    this.progress,
+  });
 }
 
 /// Обновление успешно завершено (передано системе)
@@ -230,7 +238,11 @@ abstract interface class UpdateInstaller {
   Future<void> confirmInstallation();
   
   /// Отменяет текущее обновление
-  Future<void> cancel();
+  Future<void> cancelInstallation();
+
+  /// Освобождает ресурсы Installer'а (стримы, подписки, временные файлы и т.п.)
+  /// Вызывается контроллером при controller.dispose()
+  void dispose();
 }
 ```
 

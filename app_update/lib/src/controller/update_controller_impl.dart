@@ -244,6 +244,7 @@ class UpdateControllerImpl implements UpdateController {
 
   @override
   Future<UpdateInstallationResult?> installUpdate(Update update) async {
+    // TODO implement
     throw Exception('Not impl');
   }
 
@@ -268,7 +269,11 @@ class UpdateControllerImpl implements UpdateController {
 
   @override
   void dispose() {
-    onFetchStreamController.close();
     _activeInstaller = null;
+    for (final installer in updateInstallers) {
+      installer.dispose();
+    }
+
+    onFetchStreamController.close();
   }
 }
