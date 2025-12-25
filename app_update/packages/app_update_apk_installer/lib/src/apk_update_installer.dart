@@ -275,4 +275,12 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       await controller.close();
     }
   }
+
+  @override
+  void dispose() {
+    _cleanup();
+    _native.cancelInstall();
+    _nativeSub?.cancel();
+    _nativeSub = null;
+  }
 }
