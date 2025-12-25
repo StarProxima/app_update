@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   package="com.blancvpn.app_update_apk_installer">
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
-    <uses-permission android:name="android.permission.INSTALL_PACKAGES"/>
+    <application>
+        <receiver
+            android:name="com.blancvpn.app_update_apk_installer.InstallResultReceiver"
+            android:exported="false" />
+    </application>
 </manifest>

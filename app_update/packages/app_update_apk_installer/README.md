@@ -1,15 +1,28 @@
 # app_update_apk_installer
 
-A new Flutter plugin project.
+Flutter plugin-addition for [`app_update`] that provides an Android APK installer:
+
+- **Dart side**: downloads APK from `update.content.updateUrl` with progress
+- **Android side (Kotlin)**: installs downloaded APK via `PackageInstaller`
 
 ## Getting Started
 
-This project is a starting point for a Flutter
-[plug-in package](https://flutter.dev/to/develop-plugins),
-a specialized package that includes platform-specific implementation code for
-Android and/or iOS.
+### Usage (installer)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```dart
+import 'package:app_update/app_update.dart';
+import 'package:app_update_apk_installer/app_update_apk_installer.dart';
+
+// Set up installer in controller
+final controller = UpdateController(
+    installers: [
+        ApkUpdateInstaller(),
+    ]
+);
+
+// TODO доделать
+
+```
+
+> Note: the intended integration is through `UpdateController.installUpdate()` once it is wired to pass installer configs and manage lifecycle.
 

@@ -11,9 +11,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  plugin_platform_interface: ^2.0.2
   app_update:
     path: ../.. # TODO поменять на путь с Pub-а
+  dio: ^5.7.0
+  path_provider: ^2.1.5
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
