@@ -48,6 +48,8 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       return false;
     }
 
+    if (!update.content.updateUrl.trim().endsWith('.apk')) return false;
+
     return true;
   }
 
@@ -63,7 +65,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     _controller = StreamController<UpdateInstallationProgress>.broadcast();
     _cancelRequested = false;
 
-    unawaited(_run(update, config));
+    unawaited(Future(() => _run(update, config)));
     return _controller!.stream;
   }
 
@@ -89,7 +91,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     try {
       final tmpDir = await getTemporaryDirectory();
-      final file = File('${tmpDir.path}$fileName');
+      final file = File('${tmpDir.path}${Platform.pathSeparator}$fileName');
       if (await file.exists()) {
         await file.delete();
       }
@@ -263,17 +265,20 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   }
 
   Future<void> _cleanup() async {
-    _downloadCancelToken?.cancel('cleanup');
+    final cancelToken = _downloadCancelToken;
+    if (cancelToken != null && !cancelToken.isCancelled) {
+      cancelToken.cancel('cleanup');
+    }
     _downloadCancelToken = null;
 
     final controller = _controller;
-    _controller = null;
-    _confirmCompleter = null;
-    _cancelRequested = false;
-
     if (controller != null && !controller.isClosed) {
       await controller.close();
     }
+    _controller = null;
+
+    _confirmCompleter = null;
+    _cancelRequested = false;
   }
 
   @override
