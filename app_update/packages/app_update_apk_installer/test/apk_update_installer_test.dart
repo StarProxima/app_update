@@ -169,7 +169,7 @@ void main() {
     int numberOfDownloadedEvent = 0;
     final completer = Completer<void>();
     bool streamIsCompleted = false;
-    stream.listen((event) {
+    final sub = stream.listen((event) {
       switch (event) {
         case UpdateInstallationStarted():
           expect(numberOfEvent, equals(1));
@@ -208,6 +208,7 @@ void main() {
     await installer.cancelInstallation();
     await Future.delayed(const Duration(seconds: 1));
     expect(streamIsCompleted, isTrue);
+    await sub.cancel();
   });
 
   test('ApkUpdateInstaller confirm installation', () async {
@@ -221,7 +222,7 @@ void main() {
     bool isExecutingEvent = false;
     final completerDownloaded = Completer<void>();
     final completerCompleted = Completer<void>();
-    stream.listen((event) {
+    final sub = stream.listen((event) {
       switch (event) {
         case UpdateInstallationStarted():
           expect(numberOfEvent, equals(1));
@@ -267,5 +268,6 @@ void main() {
 
     // ожидаем установки
     await completerCompleted.future.timeout(const Duration(minutes: 1));
+    await sub.cancel();
   });
 }
