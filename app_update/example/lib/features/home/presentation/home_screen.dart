@@ -6,6 +6,7 @@ import '../../settings/presentation/settings_screen.dart';
 import '../../shared/domain/app_state.dart';
 import '../../shared/presentation/widgets/scenario_card.dart';
 import '../../update_info/presentation/update_info_screen.dart';
+import '../../apk_installer/presentation/apk_installer_screen.dart';
 import '../domain/update_scenario.dart';
 import 'widgets/info_card.dart';
 
@@ -98,6 +99,14 @@ class _HomeScreenState extends State<HomeScreen> {
         const SnackBar(content: Text('Сначала проверьте обновления')),
       );
     }
+  }
+
+  void _openApkInstaller() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const ApkInstallerScreen(),
+      ),
+    );
   }
 
   Future<void> _clearUpdates() async {
@@ -206,6 +215,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   icon: Icons.delete,
                   color: Colors.red,
                   onTap: _clearUpdates,
+                  enabled: true,
+                ),
+                const SizedBox(height: 12),
+                ScenarioCard(
+                  title: 'APK Installer',
+                  description: 'Тест скачивания APK и установки через плагин',
+                  icon: Icons.system_update_alt,
+                  color: Colors.green,
+                  onTap: _openApkInstaller,
                   enabled: true,
                 ),
                 const SizedBox(height: 24),

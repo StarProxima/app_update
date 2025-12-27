@@ -26,10 +26,9 @@ apply plugin: "kotlin-android"
 
 android {
     namespace = "com.blancvpn.app_update_apk_installer"
-    compileSdk = 36
+    compileSdk = 35
 
     compileOptions {
-        coreLibraryDesugaringEnabled true
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
@@ -47,7 +46,4 @@ android {
         minSdk = 23
     }
 
-    dependencies {
-        coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
-    }
 }

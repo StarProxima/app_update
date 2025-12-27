@@ -10,9 +10,13 @@ dependencies:
   flutter:
     sdk: flutter
   shared_preferences: ^2.3.5
+  pub_semver: ^2.2.0
 
   app_update:
     path: ../
+
+  app_update_apk_installer:
+    path: ../packages/app_update_apk_installer
 
   benchmark_harness: ^2.2.2
   yaml: ^3.1.2
