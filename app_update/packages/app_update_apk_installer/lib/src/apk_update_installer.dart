@@ -118,6 +118,14 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         return;
       }
 
+      // Validate that the downloaded file is an APK
+      final apkValidationError = await _validateApkFile(file);
+      if (apkValidationError != null) {
+        controller.add(UpdateInstallationFailed(apkValidationError));
+        await _cleanup();
+        return;
+      }
+
       // Validate sha256 checksum
       final sha256 = parsedConfig.sha256;
       if (sha256 != null) {
@@ -220,6 +228,26 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     if (len <= 0) throw Exception('Downloaded apk file is empty');
   }
 
+  /// APK is a ZIP archive, so it must start with ZIP signatures "PK"
+  Future<String?> _validateApkFile(File file) async {
+    try {
+      final raf = await file.open();
+      final header = await raf.read(16);
+      await raf.close();
+
+      if (header.length < 4) return 'Downloaded file is too small to be an APK';
+
+      final b0 = header[0];
+      final b1 = header[1];
+      final isZip = b0 == 0x50 && b1 == 0x4B; // PK
+      if (!isZip) return 'Downloaded file is not an APK (ZIP magic mismatch)';
+
+      return null;
+    } catch (e) {
+      return 'Failed to validate downloaded APK file: $e';
+    }
+  }
+
   Future<bool> _validateSha256(File file, String expectedHex) async {
     final normalized = expectedHex.toLowerCase();
     final digest = await sha256.bind(file.openRead()).first;
@@ -242,6 +270,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
           );
         }
         // TODO обработать type installing с прогрессом
+        // TODO и ещё сделать так, чтобы успех появлялся только после установки прямо
       }
     });
 

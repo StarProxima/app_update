@@ -94,11 +94,13 @@ void main() {
         .setMockMethodCallHandler(apkInstallerChannel, null);
   });
 
+  final fakeApkBytes =
+      List<int>.generate(256 * 1024, (i) => i % 256)
+        ..[0] = 0x50
+        ..[1] = 0x4B; // 'PK' (ZIP/APK signature)
+
   final dio =
-      Dio()
-        ..httpClientAdapter = _FakeApkHttpClientAdapter(
-          bytes: List<int>.generate(256 * 1024, (i) => i % 256),
-        );
+      Dio()..httpClientAdapter = _FakeApkHttpClientAdapter(bytes: fakeApkBytes);
   final mockUpdate = Update(
     version: Version(1, 2, 3),
     date: DateTime.utc(2025, 12, 26, 12),

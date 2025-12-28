@@ -14,7 +14,7 @@ void main() {
 
   // TODO заменить на url из app_update
   const url =
-      'https://github.com/iamgirya/junk/raw/main/app_update_example.apk';
+      'https://github.com/iamgirya/junk/raw/refs/heads/main/app_update_example.apk';
 
   // Unit/widget tests override HttpClient to return 400 (no real network).
   // For this *explicit* network test we temporarily disable that override.
@@ -156,7 +156,7 @@ void main() {
       }
     });
 
-    await cancelled.future.timeout(const Duration(minutes: 1));
+    await cancelled.future.timeout(const Duration(minutes: 3));
     await sub.cancel();
   });
 }
