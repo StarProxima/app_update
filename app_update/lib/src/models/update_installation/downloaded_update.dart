@@ -9,9 +9,13 @@ class DownloadedUpdate {
   /// Дополнительные метаданные
   final Map<String, dynamic>? metadata;
 
+  /// Флаг, что файл является резервной копией
+  final bool isBackup;
+
   const DownloadedUpdate({
     this.filePath,
     this.fileSize,
     this.metadata,
+    required this.isBackup,
   });
 }

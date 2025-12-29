@@ -92,30 +92,40 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     final fileName =
         parsedConfig.fileName ?? _inferFileName(uri: uri, update: update);
+    final updateName = update.updateName;
 
     try {
       final tmpDir = await getTemporaryDirectory();
-      final file = File('${tmpDir.path}${Platform.pathSeparator}$fileName');
-      if (await file.exists()) {
-        // TODO сохранять бы файл, чтобы каждый раз не скачивать. Через prefixfilename
+      final tmpDirPath = tmpDir.path + Platform.pathSeparator;
+      final file = File('$tmpDirPath$fileName');
+      if (file.existsSync()) {
         await file.delete();
       }
 
-      // Download apk file
-      await _download(
-        uri: uri,
-        file: file,
-        onProgress: (bytes, total) {
-          final progress = total == null || total <= 0 ? 0.0 : bytes / total;
-          controller.add(
-            UpdateInstallationDownloading(
-              progress: progress.clamp(0.0, 1.0),
-              bytesDownloaded: bytes,
-              totalBytes: total,
-            ),
-          );
-        },
-      );
+      final backUpFile = File('$tmpDirPath$fileName.$updateName.backup');
+      var isBackup = false;
+
+      if (backUpFile.existsSync()) {
+        // Use backup file
+        await backUpFile.copy(file.path);
+        isBackup = true;
+      } else {
+        // Download apk file
+        await _download(
+          uri: uri,
+          file: file,
+          onProgress: (bytes, total) {
+            final progress = total == null || total <= 0 ? 0.0 : bytes / total;
+            controller.add(
+              UpdateInstallationDownloading(
+                progress: progress.clamp(0.0, 1.0),
+                bytesDownloaded: bytes,
+                totalBytes: total,
+              ),
+            );
+          },
+        );
+      }
 
       if (_cancelRequested) {
         controller.add(const UpdateInstallationCancelled());
@@ -146,6 +156,9 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         }
       }
 
+      // Save backup file
+      await file.copy(backUpFile.path);
+
       final isNeedConfirm =
           parsedConfig.requireUserConfirm ?? requireUserConfirm;
       final size = await file.length();
@@ -155,6 +168,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
             filePath: file.path,
             fileSize: size,
             metadata: {'url': uri.toString()},
+            isBackup: isBackup,
           ),
           isNeedConfirm: isNeedConfirm,
         ),

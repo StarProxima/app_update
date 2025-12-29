@@ -7,7 +7,7 @@ import 'package:app_update/app_update.dart';
 final class ApkUpdateInstallerConfig extends UpdateInstallerConfig {
   static const installerName = 'apk_install';
 
-  /// Optional filename override (without directories).
+  /// Optional filename override.
   final String? fileName;
 
   /// Optional SHA-256 checksum (hex) to validate downloaded APK.

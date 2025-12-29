@@ -128,7 +128,12 @@ void main() {
           :final isNeedConfirm,
           :final downloadedUpdate,
         ):
-          expect(sawDownloading, isTrue);
+          if (downloadedUpdate.isBackup) {
+            expect(sawDownloading, isFalse);
+            sawDownloading = true;
+          } else {
+            expect(sawDownloading, isTrue);
+          }
           expect(sawDownloaded, isFalse);
           sawDownloaded = true;
           debugPrint('downloadedUpdate filePath: ${downloadedUpdate.filePath}');

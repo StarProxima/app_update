@@ -28,4 +28,8 @@ class Update {
     required this.appSettings,
     required this.customParams,
   });
+
+  /// <version>_<year>-<month>-<day>
+  String get updateName =>
+      '$version${date != null ? '_${date!.year}-${date!.month}-${date!.day}' : ''}';
 }
