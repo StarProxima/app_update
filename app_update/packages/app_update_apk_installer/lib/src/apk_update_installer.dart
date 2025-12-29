@@ -97,6 +97,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       final tmpDir = await getTemporaryDirectory();
       final file = File('${tmpDir.path}${Platform.pathSeparator}$fileName');
       if (await file.exists()) {
+        // TODO сохранять бы файл, чтобы каждый раз не скачивать. Через prefixfilename
         await file.delete();
       }
 
@@ -215,11 +216,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     } finally {
       _downloadCancelToken = null;
     }
-
-    if (_cancelRequested) return;
-
-    final len = await file.length();
-    if (len <= 0) throw Exception('Downloaded apk file is empty');
   }
 
   /// APK is a ZIP archive, so it must start with ZIP signatures "PK"
