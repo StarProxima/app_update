@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:app_update/app_update.dart';
 import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'apk_update_installer_config.dart';
@@ -65,11 +66,14 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     _controller = StreamController<UpdateInstallationProgress>.broadcast();
     _cancelRequested = false;
 
-    unawaited(Future(() => _run(update, config)));
+    unawaited(Future(() => _runPrepareApk(update, config)));
     return _controller!.stream;
   }
 
-  Future<void> _run(Update update, UpdateInstallerConfig? config) async {
+  Future<void> _runPrepareApk(
+    Update update,
+    UpdateInstallerConfig? config,
+  ) async {
     final controller = _controller!;
     controller.add(const UpdateInstallationStarted());
 
@@ -169,17 +173,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       }
 
       // Install apk file
-      controller.add(const UpdateInstallationExecuting());
-      await _installNative(filePath: file.path);
-
-      if (_cancelRequested) {
-        controller.add(const UpdateInstallationCancelled());
-        await _cleanup();
-        return;
-      }
-
-      controller.add(const UpdateInstallationCompleted());
-      await _cleanup();
+      await _runInstallApk(controller: controller, filePath: file.path);
     } catch (e, s) {
       controller.add(UpdateInstallationFailed('APK installation failed', e, s));
       await _cleanup();
@@ -254,27 +248,49 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     return digest.toString().toLowerCase() == normalized;
   }
 
-  Future<void> _installNative({required String filePath}) async {
-    await _nativeSub?.cancel();
-    // Listen native events and parse them to installation progress
+  Future<void> _runInstallApk({
+    required StreamController<UpdateInstallationProgress> controller,
+    required String filePath,
+  }) async {
+    final installationStreamCompleter = Completer<void>();
+    controller.add(const UpdateInstallationExecuting());
+
     _nativeSub = _native.installEvents.listen((event) {
-      final controller = _controller;
-      if (controller == null) return;
-      if (event is Map) {
-        final type = event['event'];
-        if (type == 'failed') {
-          controller.add(
-            UpdateInstallationFailed(
-              '${event['message'] ?? 'Native installation failed'}',
-            ),
-          );
+      if (event is! Map) return;
+      final map = Map<Object?, Object?>.from(event);
+      final type = map['event'];
+      if (type is! String) return;
+
+      if (type == 'installing') {
+        final p = map['progress'];
+        if (p is num) {
+          final progress = p.toDouble().clamp(0.0, 1.0);
+          controller.add(UpdateInstallationExecuting(progress: progress));
+          // TODO: maximum progress from native is 0.9, lol
         }
-        // TODO обработать type installing с прогрессом
-        // TODO и ещё сделать так, чтобы успех появлялся только после установки прямо
+        return;
+      } else if (type == 'completed') {
+        installationStreamCompleter.complete();
+        controller.add(const UpdateInstallationCompleted());
+      } else if (type == 'cancelled') {
+        installationStreamCompleter.complete();
+        controller.add(const UpdateInstallationCancelled());
+      } else if (type == 'failed') {
+        final message =
+            map['message']?.toString() ?? 'Native installation failed';
+        final status = map['status']?.toString() ?? 'unknown';
+        installationStreamCompleter.completeError(
+          PlatformException(code: status, message: message),
+        );
       }
     });
 
+    // Start installation
     await _native.installApk(filePath: filePath);
+
+    // Wait for installation to complete
+    await installationStreamCompleter.future;
+    await _cleanup();
   }
 
   @override
@@ -306,6 +322,8 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     }
     _controller = null;
 
+    await _nativeSub?.cancel();
+    _nativeSub = null;
     _confirmCompleter = null;
     _cancelRequested = false;
   }

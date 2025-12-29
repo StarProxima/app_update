@@ -13,9 +13,14 @@ class ApkInstallerScreen extends StatefulWidget {
 }
 
 class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
-  final _urlController = TextEditingController();
+  final _urlController = TextEditingController(
+    text:
+        'https://github.com/iamgirya/junk/raw/refs/heads/main/app_update_example.apk',
+  );
   final _fileNameController = TextEditingController();
-  final _sha256Controller = TextEditingController();
+  final _sha256Controller = TextEditingController(
+    text: '3f0c2ecac8d7bce683b69fe5b34f2449fcb4dd8d174bf786679d5346071fb476',
+  );
 
   final _logs = <String>[];
 
@@ -121,14 +126,14 @@ class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
             'Downloading: ${(p.progress * 100).toStringAsFixed(1)}% '
             '${p.bytesDownloaded}/${p.totalBytes ?? '?'}',
           );
-        }
-        if (p is UpdateInstallationDownloaded) {
+        } else if (p is UpdateInstallationDownloaded) {
           _log(
             'Downloaded: filePath=${p.downloadedUpdate.filePath} '
             'needConfirm=${p.isNeedConfirm}',
           );
-        }
-        if (p is UpdateInstallationFailed) {
+        } else if (p is UpdateInstallationExecuting) {
+          _log('Executing: ${((p.progress ?? 0) * 100).toStringAsFixed(1)}%');
+        } else if (p is UpdateInstallationFailed) {
           _log('Failed: ${p.message}');
         }
       },
@@ -172,9 +177,12 @@ class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final last = _lastProgress;
-    final progress =
-        last is UpdateInstallationDownloading ? last.progress : null;
+    final lastState = _lastProgress;
+    final progress = lastState is UpdateInstallationDownloading
+        ? lastState.progress
+        : lastState is UpdateInstallationExecuting
+            ? lastState.progress
+            : null;
 
     return Scaffold(
       appBar: AppBar(
@@ -226,7 +234,7 @@ class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
                   label: const Text('Start'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 4),
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: _confirm,
@@ -234,7 +242,7 @@ class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
                   label: const Text('Confirm'),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 4),
               Expanded(
                 child: FilledButton.tonalIcon(
                   onPressed: _cancel,

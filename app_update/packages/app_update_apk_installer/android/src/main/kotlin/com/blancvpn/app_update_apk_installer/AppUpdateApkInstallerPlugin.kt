@@ -24,6 +24,13 @@ class AppUpdateApkInstallerPlugin : FlutterPlugin, MethodChannel.MethodCallHandl
     @Volatile
     private var instance: AppUpdateApkInstallerPlugin? = null
 
+    // Events are delivered as raw maps from Android:
+    // - {event: 'installing', progress: 0..1, sessionId?: int}
+    // - {event: 'completed', message?: String}
+    // - {event: 'failed', message: String, status?: int}
+    // - {event: 'pendingUserAction'}
+    // - {event: 'cancelled'}
+    // - {event: 'committed', sessionId?: int}
     fun dispatchEvent(event: Map<String, Any?>) {
       Log.d(TAG, "dispatchEvent: $event (instance=${instance != null})")
       instance?.sendEvent(event) ?: Log.w(TAG, "dispatchEvent dropped: no instance attached")
