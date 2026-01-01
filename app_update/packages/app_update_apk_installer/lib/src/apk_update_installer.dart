@@ -90,25 +90,25 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       return;
     }
 
-    final fileName =
-        parsedConfig.fileName ?? _inferFileName(uri: uri, update: update);
-    final updateName = update.updateName;
-
     try {
-      final tmpDir = await getTemporaryDirectory();
-      final tmpDirPath = tmpDir.path + Platform.pathSeparator;
-      final file = File('$tmpDirPath$fileName');
+      final fileName =
+          parsedConfig.fileName ?? _inferFileName(uri: uri, update: update);
+      final filePath = await _apkFilePath(fileName);
+      final updateName = update.updateName;
+
+      final file = File(filePath);
+      final backUpFile = File('$filePath.$updateName.app_update.backup');
+      var isBackup = false;
+
       if (file.existsSync()) {
         await file.delete();
       }
-
-      final backUpFile = File('$tmpDirPath$fileName.$updateName.backup');
-      var isBackup = false;
 
       if (backUpFile.existsSync()) {
         // Use backup file
         await backUpFile.copy(file.path);
         isBackup = true;
+        deleteOldBackups(filePath);
       } else {
         // Download apk file
         await _download(
@@ -195,11 +195,18 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     }
   }
 
-  static String _inferFileName({required Uri uri, required Update update}) {
+  String _inferFileName({required Uri uri, required Update update}) {
     if (uri.pathSegments.isNotEmpty) {
       return uri.pathSegments.last;
     }
-    return 'update_${update.version}.apk';
+    return 'update_${update.updateName}.apk';
+  }
+
+  Future<String> _apkFilePath(String fileName) async {
+    final tmpDir = await getTemporaryDirectory();
+    final tmpDirPath = tmpDir.path + Platform.pathSeparator;
+
+    return '$tmpDirPath$fileName';
   }
 
   Future<void> _download({

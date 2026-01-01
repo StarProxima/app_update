@@ -204,7 +204,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
   /// Deletes backup file if it exists.
   ///
   /// Backup file name is the same as inside `ApkUpdateInstaller`:
-  /// `$tmpDirPath$fileName.$updateName.backup`
+  /// `$tmpDirPath$fileName.$updateName.app_update.backup`
   Future<void> clearBackup({
     required String url,
     String? fileName,
@@ -231,8 +231,8 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
     try {
       final tmpDir = await getTemporaryDirectory();
       final tmpDirPath = tmpDir.path + Platform.pathSeparator;
-      final backupFile =
-          File('$tmpDirPath$effectiveFileName.${update.updateName}.backup');
+      final backupFile = File(
+          '$tmpDirPath$effectiveFileName.${update.updateName}.app_update.backup');
 
       final exists = await backupFile.exists();
       if (!exists) {
