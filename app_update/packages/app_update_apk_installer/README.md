@@ -55,6 +55,68 @@ Make sure your update config resolves `update.content.updateUrl` to a direct `.a
 
 For updates that have the `apk_install` installer selected, `ApkUpdateInstaller` will be used: it silently downloads the `.apk` file and then installs it after the user grants permission.
 
+## Usage (end-to-end)
+
+This is a typical flow:
+
+```dart
+import 'package:app_update/app_update.dart';
+import 'package:app_update_apk_installer/app_update_apk_installer.dart';
+
+final controller = UpdateController(
+  updateInstallers: [ApkUpdateInstaller()],
+);
+
+// 1) Find an update (your app_update flow)
+final update = controller.findUpdate(searchConfig).update;
+if (update == null) return;
+
+// 2) Start installation
+final result = await controller.installUpdate(update);
+if (result == null) return;
+
+// 3) Listen to progress and handle confirm/cancel
+result.progress.listen((p) async {
+  switch (p) {
+    case UpdateInstallationDownloading(:final progress):
+      // progress: 0..1
+      break;
+
+    case UpdateInstallationDownloaded(:final isNeedConfirm):
+      if (isNeedConfirm) {
+        // Ask user for confirmation, then:
+        await controller.confirmUpdateInstallation();
+      }
+      break;
+
+    case UpdateInstallationExecuting(:final progress):
+      // install progress: 0..1 (may be null on some devices)
+      break;
+
+    case UpdateInstallationCompleted():
+      break;
+
+    case UpdateInstallationCancelled():
+      break;
+
+    case UpdateInstallationFailed(:final message):
+      // show error message
+      break;
+  }
+});
+```
+
+## APK URL requirements
+
+`update.content.updateUrl` must point to a **direct `.apk` file download**.
+
+If the URL points to an HTML page (for example, a GitHub release page, a login page, a “download” landing page, or a CDN error page), the installer will download that HTML and Android installation will fail.
+
+Recommended checks:
+- The URL should end with `.apk`
+- The server should return the APK bytes (not HTML/JSON)
+- If your server requires authentication, provide a Dio client configured with the required headers/tokens any other options
+
 ## Features
 
 - **APK download**
@@ -68,9 +130,9 @@ For updates that have the `apk_install` installer selected, `ApkUpdateInstaller`
   - Optional SHA-256 verification
 
 - **APK backup caching**
-  - Caches a backup copy after downloading
+  - Caches a apk backup copy after downloading
   - If the installation is not finished and you request it again, the installer can reuse that backup
-  - Clears used backups
+  - Clears old backups
 
 - **Two or one step install flow**
   - Can wait for explicit confirmation before installing (for example, to request permissions first)
