@@ -29,6 +29,7 @@ final class _FakeApkHttpClientAdapter implements HttpClientAdapter {
     Stream<Uint8List>? requestStream,
     Future<void>? cancelFuture,
   ) async {
+    debugPrint('Mocked fetch: ${options.uri}');
     final total = bytes.length;
     final chunks = <Uint8List>[];
     for (var i = 0; i < total; i += _chunkSize) {
@@ -57,8 +58,21 @@ void main() {
   // Unit-тесты не поднимают реальные плагины, поэтому мокаем platform channels.
   const pathProviderChannel = MethodChannel('plugins.flutter.io/path_provider');
   const apkInstallerChannel = MethodChannel('app_update_apk_installer/method');
+  const apkInstallerEventsChannel = MethodChannel(
+    'app_update_apk_installer/events',
+  );
+  const _eventCodec = StandardMethodCodec();
 
   setUpAll(() {
+    void emitNativeEvent(Map<String, Object?> event) {
+      final data = _eventCodec.encodeSuccessEnvelope(event);
+      ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
+        'app_update_apk_installer/events',
+        data,
+        (_) {},
+      );
+    }
+
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(pathProviderChannel, (call) async {
           // path_provider ожидает string path.
@@ -72,13 +86,30 @@ void main() {
           }
         });
 
+    // EventChannel handshake for ApkInstallerNative.installEvents.
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(apkInstallerEventsChannel, (call) async {
+          switch (call.method) {
+            case 'listen':
+            case 'cancel':
+              return null;
+            default:
+              debugPrint('Unexpected event channel call: ${call.method}');
+              return null;
+          }
+        });
+
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(apkInstallerChannel, (call) async {
           // В этом тесте мы отменяем установку ДО нативного installApk,
           // но cancelInstallation() всё равно вызывает 'cancel'.
           switch (call.method) {
             case 'cancel':
+              emitNativeEvent(<String, Object?>{'event': 'cancelled'});
+              return null;
             case 'installApk':
+              await Future.delayed(const Duration(seconds: 10));
+              emitNativeEvent(<String, Object?>{'event': 'completed'});
               return null;
             default:
               debugPrint('Unexpected method call: ${call.method}');
@@ -92,6 +123,28 @@ void main() {
         .setMockMethodCallHandler(pathProviderChannel, null);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(apkInstallerChannel, null);
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(apkInstallerEventsChannel, null);
+
+    // Cleanup temp APKs/backups produced by tests (best-effort).
+    final dir = Directory.systemTemp;
+    if (dir.existsSync()) {
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! File) continue;
+        final path = entity.path;
+        final isTestApk = path.endsWith('${Platform.pathSeparator}test.apk');
+        final isInstallerBackup =
+            path.endsWith('.app_update.backup') && path.contains('test.apk.');
+
+        if (!isTestApk && !isInstallerBackup) continue;
+
+        try {
+          await entity.delete();
+        } catch (_) {
+          // ignore
+        }
+      }
+    }
   });
 
   final fakeApkBytes =
