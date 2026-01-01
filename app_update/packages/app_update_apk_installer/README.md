@@ -124,6 +124,7 @@ Recommended checks:
   - Emits `UpdateInstallationDownloading` state with progress and bytes
   - Can download the APK silently in the background
   - Can use your Dio client
+  - Can retry a download if possible
 
 - **APK integrity checks**
   - Rejects non-APK downloads (e.g., HTML/JSON error pages instead of an APK)

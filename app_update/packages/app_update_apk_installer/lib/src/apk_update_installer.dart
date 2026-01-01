@@ -24,14 +24,19 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   final bool requireUserConfirm;
   final ApkInstallerNative _native = ApkInstallerNative();
 
-  ApkUpdateInstaller({Dio? dio, this.requireUserConfirm = true})
-    : dio = dio ?? Dio();
+  ApkUpdateInstaller({
+    Dio? dio,
+    this.requireUserConfirm = true,
+    int apkDownloadRetryCount = 1,
+  }) : dio = dio ?? Dio(),
+       _apkDownloadRetryCount = apkDownloadRetryCount;
 
   StreamController<UpdateInstallationProgress>? _controller;
   Completer<void>? _confirmCompleter;
   StreamSubscription<dynamic>? _nativeSub;
   CancelToken? _downloadCancelToken;
   bool _cancelRequested = false;
+  final int _apkDownloadRetryCount;
 
   @override
   UpdateInstallerName get name => UpdateInstallerName.apkInstall;
@@ -113,6 +118,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         await _download(
           uri: uri,
           file: file,
+          retryCount: _apkDownloadRetryCount,
           onProgress: (bytes, total) {
             final progress = total == null || total <= 0 ? 0.0 : bytes / total;
             controller.add(
@@ -190,7 +196,14 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       // Install apk file
       await _runInstallApk(controller: controller, filePath: file.path);
     } catch (e, s) {
-      controller.add(UpdateInstallationFailed('APK installation failed', e, s));
+      final message = switch (e) {
+        DioException() => 'Download failed: ${e.message ?? e.error ?? e.type}',
+        FileSystemException() => 'File error: ${e.message}',
+        PlatformException() =>
+          'Installation failed: ${e.code}${e.message != null ? ': ${e.message}' : ''}',
+        _ => 'APK installation failed',
+      };
+      controller.add(UpdateInstallationFailed(message, e, s));
       await _cleanup();
     }
   }
@@ -238,27 +251,57 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   Future<void> _download({
     required Uri uri,
     required File file,
+    required int retryCount,
     required void Function(int bytesDownloaded, int? totalBytes) onProgress,
   }) async {
     final cancelToken = CancelToken();
     _downloadCancelToken = cancelToken;
 
+    const baseDelay = Duration(milliseconds: 500);
+
     try {
-      await dio.download(
-        uri.toString(),
-        file.path,
-        cancelToken: cancelToken,
-        options: Options(
-          responseType: ResponseType.bytes,
-          followRedirects: true,
-        ),
-        onReceiveProgress: (count, total) {
-          if (_cancelRequested) return;
-          onProgress(count, total > 0 ? total : null);
-        },
-      );
+      for (var attempt = 1; attempt <= retryCount; attempt++) {
+        if (_cancelRequested) return;
+
+        try {
+          await dio.download(
+            uri.toString(),
+            file.path,
+            cancelToken: cancelToken,
+            options: Options(
+              responseType: ResponseType.bytes,
+              followRedirects: true,
+            ),
+            onReceiveProgress: (count, total) {
+              if (_cancelRequested) return;
+              onProgress(count, total > 0 ? total : null);
+            },
+          );
+          return; // success
+        } on DioException catch (e) {
+          if (CancelToken.isCancel(e) || _cancelRequested) return;
+          if (attempt == retryCount) rethrow;
+
+          final statusCode = e.response?.statusCode;
+          final isRetryable =
+              statusCode == 408 ||
+              statusCode == 429 ||
+              (statusCode != null && statusCode >= 500);
+          if (!isRetryable) rethrow;
+
+          try {
+            if (file.existsSync()) {
+              await file.delete();
+            }
+          } catch (_) {}
+
+          // Exponential backoff: 0.5s, 1s, 2s ...
+          final delay = baseDelay * (1 << (attempt - 1));
+          await Future.delayed(delay);
+        }
+      }
     } on DioException catch (e) {
-      if (CancelToken.isCancel(e)) return;
+      if (CancelToken.isCancel(e) || _cancelRequested) return;
       rethrow;
     } finally {
       _downloadCancelToken = null;
@@ -331,7 +374,9 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     await _native.installApk(filePath: filePath);
 
     // Wait for installation to complete
-    await installationStreamCompleter.future;
+    await installationStreamCompleter.future.timeout(
+      const Duration(minutes: 5),
+    );
     await _cleanup();
   }
 
@@ -358,16 +403,16 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     }
     _downloadCancelToken = null;
 
+    await _nativeSub?.cancel();
+    _nativeSub = null;
+    _confirmCompleter = null;
+    _cancelRequested = false;
+
     final controller = _controller;
     if (controller != null && !controller.isClosed) {
       await controller.close();
     }
     _controller = null;
-
-    await _nativeSub?.cancel();
-    _nativeSub = null;
-    _confirmCompleter = null;
-    _cancelRequested = false;
   }
 
   @override
