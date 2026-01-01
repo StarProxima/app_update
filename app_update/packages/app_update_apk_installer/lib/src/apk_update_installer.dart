@@ -27,7 +27,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   ApkUpdateInstaller({
     Dio? dio,
     this.requireUserConfirm = true,
-    int apkDownloadRetryCount = 1,
+    int apkDownloadRetryCount = 3,
   }) : dio = dio ?? Dio(),
        _apkDownloadRetryCount = apkDownloadRetryCount;
 
