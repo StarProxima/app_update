@@ -1,28 +1,97 @@
 # app_update_apk_installer
 
-Flutter plugin-addition for [`app_update`] that provides an Android APK installer:
+`app_update_apk_installer` is a Flutter plugin add-on for `app_update` that enables **direct APK download + installation on Android**.
 
-- **Dart side**: downloads APK from `update.content.updateUrl` with progress
-- **Android side (Kotlin)**: installs downloaded APK via `PackageInstaller`
+It provides an `UpdateInstaller` implementation (`ApkUpdateInstaller`) that:
+- Downloads an APK from `update.content.updateUrl` TODO поменять как по апи договоримся
+- Triggers Android’s package installation flow
+- Emits download and installation progress via a stream
 
-## Getting Started
+> This package is intended to be used together with `app_update` as an additional installer implementation.
 
-### Usage (installer)
+## Getting started
+
+### 1) Add dependency
+
+Add the package to your app.
+
+### 2) Android manifest permissions
+
+To be able to install APKs, your app must have the required Android permissions.
+
+Add this to your app’s `android/app/src/main/AndroidManifest.xml`:
+
+```xml
+<manifest ...>
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  ...
+</manifest>
+```
+
+### 3) Register installer
+
+Pass `ApkUpdateInstaller()` to `UpdateController` (recommended integration point):
 
 ```dart
 import 'package:app_update/app_update.dart';
 import 'package:app_update_apk_installer/app_update_apk_installer.dart';
 
-// Set up installer in controller
 final controller = UpdateController(
-    installers: [
-        ApkUpdateInstaller(),
-    ]
+  updateInstallers: [
+    ApkUpdateInstaller(),
+    // ...other installers (optional)
+  ],
 );
-
-// TODO доделать
-
 ```
 
-> Note: the intended integration is through `UpdateController.installUpdate()` once it is wired to pass installer configs and manage lifecycle.
+Only app versions with a registered `ApkUpdateInstaller` can use it.
+
+### 4) Provide an APK URL
+
+Make sure your update config resolves `update.content.updateUrl` to a direct `.apk` URL (not an HTML page).
+
+### 5) Use `updateController.installUpdate(update)`
+
+For updates that have the `apk_install` installer selected, `ApkUpdateInstaller` will be used: it silently downloads the `.apk` file and then installs it after the user grants permission.
+
+## Features
+
+- **APK download**
+  - Downloads the APK from `update.content.updateUrl`
+  - Emits `UpdateInstallationDownloading` state with progress and bytes
+  - Can download the APK silently in the background
+  - Can use your Dio client
+
+- **APK integrity checks**
+  - Rejects non-APK downloads (e.g., HTML/JSON error pages instead of an APK)
+  - Optional SHA-256 verification
+
+- **APK backup caching**
+  - Caches a backup copy after downloading
+  - If the installation is not finished and you request it again, the installer can reuse that backup
+  - Clears used backups
+
+- **Two or one step install flow**
+  - Can wait for explicit confirmation before installing (for example, to request permissions first)
+  - Or can do all steps by one call without user confirmation
+
+- **Cancellation at any stage**
+  - Can cancel the flow during download, after download, and during installation
+
+- **Android installation**
+  - Uses Android `PackageInstaller`
+  - Emits `UpdateInstallationExecuting` with install progress (when available)
+  - Guides the user through required permission flows when needed (e.g. “Install unknown apps”)
+
+## Example app
+
+This repository contains an example sandbox app in [`app_update/example/`].  
+To test the installer UI:
+
+1. Run the example on an Android device
+2. Open **“APK Installer”** from the Home screen
+3. Paste a direct `.apk` URL and use **Start / Confirm / Cancel**
+
+Made especially for Yadda.io.
 

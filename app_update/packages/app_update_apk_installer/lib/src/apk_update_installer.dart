@@ -276,7 +276,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         if (p is num) {
           final progress = p.toDouble().clamp(0.0, 1.0);
           controller.add(UpdateInstallationExecuting(progress: progress));
-          // TODO: maximum progress from native is 0.9, lol
         }
         return;
       } else if (type == 'completed') {

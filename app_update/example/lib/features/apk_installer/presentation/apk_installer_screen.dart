@@ -14,7 +14,7 @@ class _ApkInstallerScreenState extends State<ApkInstallerScreen> {
   late final ApkInstallerController _controller;
   final _urlController = TextEditingController(
     text:
-        'https://github.com/iamgirya/junk/raw/refs/heads/main/app_update_example.apk',
+        'https://github.com/iamgirya/junk/raw/refs/heads/main/app_update_example.apk', // TODO Убрать
   );
   final _fileNameController = TextEditingController();
   final _sha256Controller = TextEditingController(
