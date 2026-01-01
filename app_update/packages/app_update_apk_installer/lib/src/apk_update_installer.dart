@@ -108,7 +108,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         // Use backup file
         await backUpFile.copy(file.path);
         isBackup = true;
-        deleteOldBackups(filePath);
       } else {
         // Download apk file
         await _download(
@@ -156,7 +155,8 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         }
       }
 
-      // Save backup file
+      // Save backup file and delete old backups
+      unawaited(_deleteOldBackups(backUpFile.path));
       await file.copy(backUpFile.path);
 
       final isNeedConfirm =
@@ -207,6 +207,32 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     final tmpDirPath = tmpDir.path + Platform.pathSeparator;
 
     return '$tmpDirPath$fileName';
+  }
+
+  /// Deletes all old backup files in background (fire-and-forget),
+  Future<void> _deleteOldBackups(String currentBackupFilePath) async {
+    try {
+      final current = File(currentBackupFilePath);
+      final dir = current.parent;
+      if (!dir.existsSync()) return;
+
+      await for (final entity in dir.list(followLinks: false)) {
+        if (entity is! File) continue;
+        final path = entity.path;
+
+        // Keep current backup, delete other installer backups.
+        if (path == currentBackupFilePath) continue;
+        if (!path.endsWith('.app_update.backup')) continue;
+
+        try {
+          await entity.delete();
+        } catch (_) {
+          // Ignore deletion errors, do not affect installation.
+        }
+      }
+    } catch (_) {
+      // Ignore any errors, do not affect installation.
+    }
   }
 
   Future<void> _download({
