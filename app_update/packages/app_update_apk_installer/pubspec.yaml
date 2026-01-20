@@ -1,5 +1,5 @@
 name: app_update_apk_installer
-description: "A new Flutter plugin project."
+description: "A Flutter plugin for direct APK download + installation on Android."
 version: 0.0.1
 publish_to: none
 homepage:
