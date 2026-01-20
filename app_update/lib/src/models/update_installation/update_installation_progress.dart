@@ -18,15 +18,15 @@ class UpdateInstallationInitialized extends UpdateInstallationProgress {
 /// Загрузка обновления
 class UpdateInstallationDownloading extends UpdateInstallationProgress {
   /// Прогресс от 0.0 до 1.0
-  final double progress;
+  final double? progress;
 
-  final int bytesDownloaded;
+  final int? bytesDownloaded;
 
   final int? totalBytes;
 
   const UpdateInstallationDownloading({
-    required this.progress,
-    required this.bytesDownloaded,
+    this.progress,
+    this.bytesDownloaded,
     this.totalBytes,
   });
 }

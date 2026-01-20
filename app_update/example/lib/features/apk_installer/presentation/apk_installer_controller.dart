@@ -90,8 +90,8 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
         _log(p.runtimeType.toString());
         if (p is UpdateInstallationDownloading) {
           _log(
-            'Downloading: ${(p.progress * 100).toStringAsFixed(1)}% '
-            '${p.bytesDownloaded}/${p.totalBytes ?? '?'}',
+            'Downloading: ${p.progress != null ? (p.progress! * 100).toStringAsFixed(1) : '...'}%'
+            '${p.bytesDownloaded ?? '...'}/${p.totalBytes ?? '?'}',
           );
         } else if (p is UpdateInstallationDownloaded) {
           _log(
@@ -99,7 +99,9 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
             'needConfirm=${p.isNeedConfirm}',
           );
         } else if (p is UpdateInstallationExecuting) {
-          _log('Executing: ${((p.progress ?? 0) * 100).toStringAsFixed(1)}%');
+          _log(
+            'Executing: ${p.progress != null ? (p.progress! * 100).toStringAsFixed(1) : '...'}%',
+          );
         } else if (p is UpdateInstallationFailed) {
           _log(
             'Failed: ${p.message}, with error=${p.error} and stackTrace=${p.stackTrace}',
