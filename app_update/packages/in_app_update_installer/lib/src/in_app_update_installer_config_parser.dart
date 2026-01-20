@@ -1,6 +1,7 @@
 import 'package:app_update/app_update.dart';
 
 import 'in_app_update_installer_config.dart';
+import 'in_app_update_type.dart';
 
 /// Parses config for [InAppUpdateInstallerConfig].
 ///

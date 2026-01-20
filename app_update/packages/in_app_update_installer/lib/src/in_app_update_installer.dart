@@ -9,25 +9,27 @@ import 'package:in_app_update/in_app_update.dart';
 
 import 'in_app_update_installer_config.dart';
 import 'in_app_update_installer_config_parser.dart';
+import 'in_app_update_type.dart';
 
 /// Installer that uses Google Play In-App Updates on Android.
 ///
 /// Supports immediate or flexible update flows.
 final class InAppUpdateInstaller implements UpdateInstaller {
   final bool requireUserConfirm;
+  final InAppUpdateType updateType;
+  final bool canChangeUpdateType;
 
-  InAppUpdateInstaller({this.requireUserConfirm = true});
+  InAppUpdateInstaller({
+    this.requireUserConfirm = true,
+    this.updateType = InAppUpdateType.flexible,
+    this.canChangeUpdateType = true,
+  });
 
   StreamController<UpdateInstallationProgress>? _controller;
   StreamSubscription<InstallStatus>? _installStatusSub;
   Completer<void>? _confirmCompleter;
-  Completer<void>? _downloadedCompleter;
   Completer<void>? _installedCompleter;
-
   bool _cancelRequested = false;
-  bool _downloadedEmitted = false;
-  bool _executingEmitted = false;
-  bool _completedEmitted = false;
 
   @override
   UpdateInstallerName get name => UpdateInstallerName.inAppUpdate;
@@ -56,10 +58,6 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     }
 
     _controller = StreamController<UpdateInstallationProgress>.broadcast();
-    _cancelRequested = false;
-    _downloadedEmitted = false;
-    _executingEmitted = false;
-    _completedEmitted = false;
 
     unawaited(Future(() => _run(update, config)));
     return _controller!.stream;
@@ -75,33 +73,6 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       _ => throw ArgumentError('Config is not InAppUpdateInstallerConfig'),
     };
 
-    if (!Platform.isAndroid) {
-      controller.add(
-        const UpdateInstallationFailed('In-app update is Android-only'),
-      );
-      await _cleanup();
-      return;
-    }
-
-    if (update.platform != UpdatePlatform.android &&
-        update.platform != UpdatePlatform.any) {
-      controller.add(
-        const UpdateInstallationFailed('Update platform is not Android'),
-      );
-      await _cleanup();
-      return;
-    }
-
-    if (update.sourceName != UpdateSourceName.googlePlay) {
-      controller.add(
-        const UpdateInstallationFailed(
-          'In-app update requires Google Play source',
-        ),
-      );
-      await _cleanup();
-      return;
-    }
-
     try {
       final info = await InAppUpdate.checkForUpdate();
       if (info.updateAvailability == UpdateAvailability.updateNotAvailable) {
@@ -115,12 +86,9 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       final updateType = _resolveUpdateType(info, parsedConfig);
       if (updateType == InAppUpdateType.immediate) {
         await _runImmediateUpdate(controller, info);
-        await _cleanup();
-        return;
+      } else {
+        await _runFlexibleUpdate(controller, info, parsedConfig);
       }
-
-      await _runFlexibleUpdate(controller, info, parsedConfig);
-      await _cleanup();
     } on PlatformException catch (e, s) {
       controller.add(
         UpdateInstallationFailed(
@@ -129,9 +97,9 @@ final class InAppUpdateInstaller implements UpdateInstaller {
           s,
         ),
       );
-      await _cleanup();
     } catch (e, s) {
       controller.add(UpdateInstallationFailed('In-app update failed', e, s));
+    } finally {
       await _cleanup();
     }
   }
@@ -140,31 +108,38 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     AppUpdateInfo info,
     InAppUpdateInstallerConfig config,
   ) {
-    final requested = config.updateType;
-    if (requested == InAppUpdateType.immediate) {
-      if (!info.immediateUpdateAllowed) {
-        throw StateError('Immediate update is not allowed');
-      }
-      return InAppUpdateType.immediate;
+    final requestedType = config.updateType ?? updateType;
+    final otherType = requestedType.other;
+    final canChangeUpdateType =
+        config.canChangeUpdateType ?? this.canChangeUpdateType;
+
+    final typeAllowed = {
+      InAppUpdateType.immediate: info.immediateUpdateAllowed,
+      InAppUpdateType.flexible: info.flexibleUpdateAllowed,
+    };
+
+    if (typeAllowed[requestedType]!) {
+      return requestedType;
+    } else if (canChangeUpdateType && typeAllowed[otherType]!) {
+      return otherType;
     }
 
-    if (requested == InAppUpdateType.flexible) {
-      if (!info.flexibleUpdateAllowed) {
-        throw StateError('Flexible update is not allowed');
-      }
-      return InAppUpdateType.flexible;
-    }
-
-    if (info.flexibleUpdateAllowed) return InAppUpdateType.flexible;
-    if (info.immediateUpdateAllowed) return InAppUpdateType.immediate;
-
-    throw StateError('No allowed in-app update type');
+    throw StateError(
+      'No allowed in-app update type with '
+      'immediateAllowedPreconditions: ${info.immediateAllowedPreconditions?.join(', ')} '
+      'and flexibleAllowedPreconditions: ${info.flexibleAllowedPreconditions?.join(', ')}',
+    );
   }
 
   Future<void> _runImmediateUpdate(
     StreamController<UpdateInstallationProgress> controller,
     AppUpdateInfo info,
   ) async {
+    if (_cancelRequested) {
+      controller.add(const UpdateInstallationCancelled());
+      return;
+    }
+
     controller.add(const UpdateInstallationExecuting());
     final result = await InAppUpdate.performImmediateUpdate();
     switch (result) {
@@ -184,32 +159,24 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     AppUpdateInfo info,
     InAppUpdateInstallerConfig config,
   ) async {
-    _downloadedCompleter = Completer<void>();
     _installedCompleter = Completer<void>();
+    final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
+
+    if (_cancelRequested) {
+      controller.add(const UpdateInstallationCancelled());
+      return;
+    }
 
     _installStatusSub = InAppUpdate.installUpdateListener.listen(
-      (status) {
-        _handleInstallStatus(controller, status, info, config);
-      },
-      onError: (Object error, StackTrace stackTrace) {
-        if (_completedEmitted) return;
-        controller.add(
-          UpdateInstallationFailed('In-app update status error', error),
-        );
-        final completer = _installedCompleter;
+      (status) => _handleInstallStatus(controller, status, info, isNeedConfirm),
+      onError: (error, stackTrace) {
+        // TODO ошибку норм обработать
+        var completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.completeError(error, stackTrace);
         }
       },
     );
-
-    if (info.installStatus == InstallStatus.downloaded) {
-      _emitDownloaded(controller, info, config);
-      final completer = _downloadedCompleter;
-      if (completer != null && !completer.isCompleted) {
-        completer.complete();
-      }
-    }
 
     final startResult = await InAppUpdate.startFlexibleUpdate();
     switch (startResult) {
@@ -225,13 +192,6 @@ final class InAppUpdateInstaller implements UpdateInstaller {
         return;
     }
 
-    await _downloadedCompleter!.future;
-    if (_cancelRequested) {
-      controller.add(const UpdateInstallationCancelled());
-      return;
-    }
-
-    final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
     if (isNeedConfirm) {
       _confirmCompleter = Completer<void>();
       await _confirmCompleter!.future;
@@ -242,23 +202,15 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       controller.add(const UpdateInstallationCancelled());
       return;
     }
-
-    if (!_executingEmitted) {
-      controller.add(const UpdateInstallationExecuting());
-      _executingEmitted = true;
-    }
-
+    // TODO нужно ли ждать Downloaded? или можно дёрнуть заранее?
     await InAppUpdate.completeFlexibleUpdate();
 
     await _installedCompleter!.future.timeout(
       const Duration(minutes: 10),
       onTimeout: () {
-        if (!_completedEmitted) {
-          controller.add(
-            const UpdateInstallationFailed('In-app update timed out'),
-          );
-          _completedEmitted = true;
-        }
+        controller.add(
+          const UpdateInstallationFailed('In-app update timed out'),
+        );
       },
     );
   }
@@ -267,56 +219,28 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     StreamController<UpdateInstallationProgress> controller,
     InstallStatus status,
     AppUpdateInfo info,
-    InAppUpdateInstallerConfig config,
+    bool isNeedConfirm,
   ) {
-    if (_completedEmitted) return;
-
     switch (status) {
       case InstallStatus.pending:
       case InstallStatus.downloading:
-        controller.add(
-          const UpdateInstallationDownloading(
-            progress: 0.0,
-            bytesDownloaded: 0,
-            totalBytes: null,
-          ),
-        );
+        controller.add(const UpdateInstallationDownloading());
       case InstallStatus.downloaded:
-        _emitDownloaded(controller, info, config);
-        final completer = _downloadedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.complete();
-        }
+        controller.add(_createDownloadedStatus(info, isNeedConfirm));
       case InstallStatus.installing:
-        if (!_executingEmitted) {
-          controller.add(const UpdateInstallationExecuting());
-          _executingEmitted = true;
-        }
+        controller.add(const UpdateInstallationExecuting());
       case InstallStatus.installed:
-        if (!_completedEmitted) {
-          controller.add(const UpdateInstallationCompleted());
-          _completedEmitted = true;
-        }
-        final completer = _installedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.complete();
-        }
+        controller.add(const UpdateInstallationCompleted());
       case InstallStatus.failed:
-        if (!_completedEmitted) {
-          controller.add(
-            const UpdateInstallationFailed('In-app update failed'),
-          );
-          _completedEmitted = true;
-        }
+        controller.add(const UpdateInstallationFailed('In-app update failed'));
+        // TODO ошибку норм обработать
         final completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.completeError(StateError('In-app update failed'));
         }
       case InstallStatus.canceled:
-        if (!_completedEmitted) {
-          controller.add(const UpdateInstallationCancelled());
-          _completedEmitted = true;
-        }
+        controller.add(const UpdateInstallationCancelled());
+        // TODO ошибку норм обработать
         final completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.complete();
@@ -326,29 +250,21 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     }
   }
 
-  void _emitDownloaded(
-    StreamController<UpdateInstallationProgress> controller,
+  UpdateInstallationDownloaded _createDownloadedStatus(
     AppUpdateInfo info,
-    InAppUpdateInstallerConfig config,
-  ) {
-    if (_downloadedEmitted) return;
-    _downloadedEmitted = true;
-
-    final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
-    controller.add(
-      UpdateInstallationDownloaded(
-        downloadedUpdate: DownloadedUpdate(
-          isBackup: false,
-          metadata: {
-            'packageName': info.packageName,
-            'availableVersionCode': info.availableVersionCode,
-            'updatePriority': info.updatePriority,
-          },
-        ),
-        isNeedConfirm: isNeedConfirm,
-      ),
-    );
-  }
+    bool isNeedConfirm,
+  ) => UpdateInstallationDownloaded(
+    downloadedUpdate: DownloadedUpdate(
+      isBackup: false,
+      metadata: {
+        'packageName': info.packageName,
+        'availableVersionCode': info.availableVersionCode,
+        'clientVersionStalenessDays': info.clientVersionStalenessDays,
+        'updatePriority': info.updatePriority,
+      },
+    ),
+    isNeedConfirm: isNeedConfirm,
+  );
 
   @override
   Future<void> confirmInstallation() async {
@@ -369,7 +285,6 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     _installStatusSub = null;
 
     _confirmCompleter = null;
-    _downloadedCompleter = null;
     _installedCompleter = null;
     _cancelRequested = false;
 
