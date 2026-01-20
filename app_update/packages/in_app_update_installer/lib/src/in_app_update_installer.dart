@@ -16,9 +16,7 @@ import 'in_app_update_installer_config_parser.dart';
 final class InAppUpdateInstaller implements UpdateInstaller {
   final bool requireUserConfirm;
 
-  InAppUpdateInstaller({
-    this.requireUserConfirm = true,
-  });
+  InAppUpdateInstaller({this.requireUserConfirm = true});
 
   StreamController<UpdateInstallationProgress>? _controller;
   StreamSubscription<InstallStatus>? _installStatusSub;
@@ -108,9 +106,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       final info = await InAppUpdate.checkForUpdate();
       if (info.updateAvailability == UpdateAvailability.updateNotAvailable) {
         controller.add(
-          const UpdateInstallationFailed(
-            'No update available via Google Play',
-          ),
+          const UpdateInstallationFailed('No update available via Google Play'),
         );
         await _cleanup();
         return;
@@ -135,9 +131,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       );
       await _cleanup();
     } catch (e, s) {
-      controller.add(
-        UpdateInstallationFailed('In-app update failed', e, s),
-      );
+      controller.add(UpdateInstallationFailed('In-app update failed', e, s));
       await _cleanup();
     }
   }

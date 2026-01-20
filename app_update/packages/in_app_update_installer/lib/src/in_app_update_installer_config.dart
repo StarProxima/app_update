@@ -1,9 +1,6 @@
 import 'package:app_update/app_update.dart';
 
-enum InAppUpdateType {
-  immediate,
-  flexible,
-}
+enum InAppUpdateType { immediate, flexible }
 
 /// Configuration for [InAppUpdateInstaller].
 final class InAppUpdateInstallerConfig extends UpdateInstallerConfig {
@@ -15,8 +12,6 @@ final class InAppUpdateInstallerConfig extends UpdateInstallerConfig {
   /// If true, flexible update waits for user confirmation before installation.
   final bool? requireUserConfirm;
 
-  const InAppUpdateInstallerConfig({
-    this.updateType,
-    this.requireUserConfirm,
-  }) : super(name: installerName);
+  const InAppUpdateInstallerConfig({this.updateType, this.requireUserConfirm})
+    : super(name: installerName);
 }
