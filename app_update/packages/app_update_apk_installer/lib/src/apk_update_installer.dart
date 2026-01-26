@@ -49,20 +49,19 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   bool supports(Update update) {
     // We only support Android runtime + android updates.
     if (!Platform.isAndroid) return false;
-    if (update.platform != UpdatePlatform.android &&
-        update.platform != UpdatePlatform.any) {
-      return false;
-    }
-
+    if (update.platform != UpdatePlatform.android) return false;
     if (!update.content.updateUrl.trim().endsWith('.apk')) return false;
 
     return true;
   }
 
   @override
+  bool get isInstalling => _controller != null;
+
+  @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    UpdateInstallerConfig? config,
+    covariant ApkUpdateInstallerConfig? config,
   ) {
     if (_controller != null) {
       return _controller!.stream;
@@ -77,15 +76,10 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
   Future<void> _runPrepareApk(
     Update update,
-    UpdateInstallerConfig? config,
+    covariant ApkUpdateInstallerConfig? config,
   ) async {
     final controller = _controller!;
     controller.add(const UpdateInstallationStarted());
-
-    final parsedConfig =
-        config is ApkUpdateInstallerConfig
-            ? config
-            : throw ArgumentError('Config is not ApkUpdateInstallerConfig');
 
     final urlString = update.content.updateUrl.trim();
     final uri = Uri.tryParse(urlString);
@@ -97,22 +91,22 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     try {
       final fileName =
-          parsedConfig.fileName ?? _inferFileName(uri: uri, update: update);
+          config?.fileName ?? _inferFileName(uri: uri, update: update);
       final filePath = await _apkFilePath(fileName);
       final updateName = update.updateName;
 
       final file = File(filePath);
-      final backUpFile = File('$filePath.$updateName.app_update.backup');
-      var isBackup = false;
+      final cacheFile = File('$filePath.$updateName.app_update.cache');
+      var isCached = false;
 
       if (file.existsSync()) {
         await file.delete();
       }
 
-      if (backUpFile.existsSync()) {
-        // Use backup file
-        await backUpFile.copy(file.path);
-        isBackup = true;
+      if (cacheFile.existsSync()) {
+        // Use cache file
+        await cacheFile.copy(file.path);
+        isCached = true;
       } else {
         // Download apk file
         await _download(
@@ -147,7 +141,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       }
 
       // Validate sha256 checksum
-      final sha256 = parsedConfig.sha256;
+      final sha256 = config?.sha256;
       if (sha256 != null) {
         final ok = await _validateSha256(file, sha256);
         if (!ok) {
@@ -161,12 +155,11 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         }
       }
 
-      // Save backup file and delete old backups
-      unawaited(_deleteOldBackups(backUpFile.path));
-      await file.copy(backUpFile.path);
+      // Save cached file and delete old cache
+      unawaited(_deleteOldCache(cacheFile.path));
+      await file.copy(cacheFile.path);
 
-      final isNeedConfirm =
-          parsedConfig.requireUserConfirm ?? requireUserConfirm;
+      final isNeedConfirm = config?.requireUserConfirm ?? requireUserConfirm;
       final size = await file.length();
       controller.add(
         UpdateInstallationDownloaded(
@@ -174,7 +167,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
             filePath: file.path,
             fileSize: size,
             metadata: {'url': uri.toString()},
-            isBackup: isBackup,
+            isCached: isCached,
           ),
           isNeedConfirm: isNeedConfirm,
         ),
@@ -204,6 +197,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         _ => 'APK installation failed',
       };
       controller.add(UpdateInstallationFailed(message, e, s));
+    } finally {
       await _cleanup();
     }
   }
@@ -222,10 +216,10 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     return '$tmpDirPath$fileName';
   }
 
-  /// Deletes all old backup files in background (fire-and-forget),
-  Future<void> _deleteOldBackups(String currentBackupFilePath) async {
+  /// Deletes all old cache files in background (fire-and-forget),
+  Future<void> _deleteOldCache(String currentCacheFilePath) async {
     try {
-      final current = File(currentBackupFilePath);
+      final current = File(currentCacheFilePath);
       final dir = current.parent;
       if (!dir.existsSync()) return;
 
@@ -233,9 +227,9 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         if (entity is! File) continue;
         final path = entity.path;
 
-        // Keep current backup, delete other installer backups.
-        if (path == currentBackupFilePath) continue;
-        if (!path.endsWith('.app_update.backup')) continue;
+        // Keep current cache, delete other installer caches.
+        if (path == currentCacheFilePath) continue;
+        if (!path.endsWith('.app_update.cache')) continue;
 
         try {
           await entity.delete();
@@ -377,7 +371,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     await installationStreamCompleter.future.timeout(
       const Duration(minutes: 5),
     );
-    await _cleanup();
   }
 
   @override

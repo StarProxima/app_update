@@ -126,17 +126,17 @@ void main() {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(apkInstallerEventsChannel, null);
 
-    // Cleanup temp APKs/backups produced by tests (best-effort).
+    // Cleanup temp APKs/caches produced by tests (best-effort).
     final dir = Directory.systemTemp;
     if (dir.existsSync()) {
       await for (final entity in dir.list(followLinks: false)) {
         if (entity is! File) continue;
         final path = entity.path;
         final isTestApk = path.endsWith('${Platform.pathSeparator}test.apk');
-        final isInstallerBackup =
-            path.endsWith('.app_update.backup') && path.contains('test.apk.');
+        final isInstallerCache =
+            path.endsWith('.app_update.cache') && path.contains('test.apk.');
 
-        if (!isTestApk && !isInstallerBackup) continue;
+        if (!isTestApk && !isInstallerCache) continue;
 
         try {
           await entity.delete();

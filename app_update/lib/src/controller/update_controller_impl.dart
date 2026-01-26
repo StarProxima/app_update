@@ -54,6 +54,9 @@ class UpdateControllerImpl implements UpdateController {
   @protected
   UpdateInstaller? _activeInstaller;
 
+  bool get isInstalling =>
+      _activeInstaller != null && _activeInstaller!.isInstalling;
+
   // Dependencies, can be overridden
 
   @protected

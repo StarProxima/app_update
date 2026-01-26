@@ -128,7 +128,7 @@ void main() {
           :final isNeedConfirm,
           :final downloadedUpdate,
         ):
-          if (downloadedUpdate.isBackup) {
+          if (downloadedUpdate.isCached) {
             expect(sawDownloading, isFalse);
             sawDownloading = true;
           } else {

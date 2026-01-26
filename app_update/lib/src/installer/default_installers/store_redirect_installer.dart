@@ -32,14 +32,15 @@ class StoreRedirectInstaller implements UpdateInstaller {
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    UpdateInstallerConfig? config,
+    covariant StoreRedirectInstallerConfig? config,
   ) async* {
     yield const UpdateInstallationStarted();
 
     var launchMode = LaunchMode.platformDefault;
-    if (config is StoreRedirectInstallerConfig) {
-      if (config.launchMode != null) {
-        launchMode = config.launchMode!;
+    if (config != null) {
+      final configLaunchMode = config.launchMode;
+      if (configLaunchMode != null) {
+        launchMode = configLaunchMode;
       }
     }
 
@@ -77,6 +78,9 @@ class StoreRedirectInstaller implements UpdateInstaller {
 
     yield const UpdateInstallationCompleted();
   }
+
+  @override
+  bool get isInstalling => false;
 
   @override
   Future<void> confirmInstallation() async {

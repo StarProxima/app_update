@@ -56,7 +56,7 @@ class UpdateInstallationResult {
   final UpdateInstallerName installerName;
   
   /// Stream прогресса выполнения
-  final Stream<UpdateInstallationProgress> progress;
+  final Stream<UpdateInstallationProgress> progressStream;
   
   const UpdateInstallationResult({
     required this.installerName,

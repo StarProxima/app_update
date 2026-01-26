@@ -9,13 +9,13 @@ class DownloadedUpdate {
   /// Дополнительные метаданные
   final Map<String, dynamic>? metadata;
 
-  /// Флаг, что файл является резервной копией
-  final bool isBackup;
+  /// Является ли файл резервной копией, сохранённой локально, или был загружен заново
+  final bool isCached;
 
   const DownloadedUpdate({
     this.filePath,
     this.fileSize,
     this.metadata,
-    required this.isBackup,
+    required this.isCached,
   });
 }
