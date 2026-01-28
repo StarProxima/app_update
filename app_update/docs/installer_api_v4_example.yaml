@@ -2,73 +2,40 @@
 # Несколько самостоятельных примеров конфигураций installer-ов.
 
 # -----------------------------
-# Пример 1: Глобальные правила installer-ов, минимальный пример
+# Пример 1: Глобальные правила installers в settings
 # -----------------------------
 content:
   - data:
       title: "Update available"
       description: "Version $releaseVersion is ready"
 
-installer:
+settings:
   # APK installer для android + github
   - when:
       platform_is: android
       source_is: github
     data:
-      name: apk_install
-      apk_url: "https://github.com/user/repo/releases/download/v$releaseVersion/app.apk"
-      file_name: "app-$releaseVersion.apk"
-      require_user_confirm: true
-  # Ios: store redirect в стор для любого апдейта
-  - when: { platform_is: ios }
+      installers:
+        apk_install:
+          apk_url: "https://github.com/user/repo/releases/download/v$releaseVersion/app.apk"
+          file_name: "app-$releaseVersion.apk"
+          require_user_confirm: true
+  # iOS: store redirect в стор для любого апдейта
+  - when:
+      platform_is: ios 
     data:
-      name: store_redirect
-      store_url: "https://apps.apple.com/app/id$appPackageName"
+      installers:
+        store_redirect:
+          store_url: "https://apps.apple.com/app/id$appPackageName"
   # Fallback: store redirect на "наш" сайт для любого апдейта
   - data:
-      name: store_redirect
-      store_url: "https://example.com/download"
+      installers:
+        store_redirect:
+          store_url: "https://example.com/download"
 ---
 
 # -----------------------------
-# Пример 2: Installer на уровне source и platform. Более правильный вариант
-# -----------------------------
-content:
-  - data:
-      title: "Update available"
-      description: "Version $releaseVersion is ready"
-
-sources:
-  - name: github
-    platforms:
-      - android
-      - name: windows
-        content:
-          - data:
-              update_url: "https://github.com/user/repo/releases/download/v$releaseVersion/setup.exe"
-        installer:
-          - data:
-              name: store_redirect
-              store_url: "https://github.com/user/repo/releases/download/v$releaseVersion/setup.exe"
-    content:
-      - data:
-          update_url: "https://github.com/user/repo/releases"
-    installer:
-      - data:
-          name: apk_install
-          apk_url: "https://github.com/user/repo/releases/download/v$releaseVersion/app.apk"
-          require_user_confirm: true
-    # То есть для сурса по умолчанию будет использоваться apk_install, но для платформы windows будет использоваться store_redirect
-
-releases:
-  - version: "3.0.0"
-    date: "2024-11-01 10:00:00"
-    sources: [github]
-
----
-
-# -----------------------------
-# Пример 3: Installer в release -> source -> platform
+# Пример 2: Installer в release -> source -> platform
 # -----------------------------
 content:
   - data:
@@ -96,7 +63,9 @@ releases:
       - name: github
         platforms:
           - name: windows
-            installer:
+            settings:
               - data:
-                  name: store_redirect
-                  store_url: "https://github.com/user/repo/releases/download/v4.2.0/setup.exe" # Для конкретного релиза из конкретного сурса опеределили инсталлер
+                  installers:
+                    store_redirect:
+                      # Для конкретного релиза source и платформы определили installer
+                      store_url: "https://github.com/user/repo/releases/download/v4.2.0/setup.exe" 
