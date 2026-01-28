@@ -73,6 +73,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
 
     final update = _buildFakeUpdate(normalizedUrl);
     final config = ApkUpdateInstallerConfig(
+      apkUrl: Uri.parse(normalizedUrl),
       fileName: (fileName == null || fileName.isEmpty) ? null : fileName,
       sha256: (sha256 == null || sha256.isEmpty) ? null : sha256,
       requireUserConfirm: value.requireConfirm,
