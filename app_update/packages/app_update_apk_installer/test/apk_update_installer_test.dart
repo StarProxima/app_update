@@ -52,6 +52,8 @@ final class _FakeApkHttpClientAdapter implements HttpClientAdapter {
   void close({bool force = false}) {}
 }
 
+const testApkUrl = 'https://example.com/test.apk';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -161,7 +163,7 @@ void main() {
     // Apk installer ожидает android-апдейт (или any). Для теста задаём явно.
     platform: UpdatePlatform.android,
     rawContent: const UpdateContentData(
-      updateUrl: 'https://example.com/test.apk',
+      updateUrl: testApkUrl,
       title: 'Update available: v1.2.3',
       description: 'Bug fixes and performance improvements.',
       releaseNotesTitle: 'What’s new',
@@ -172,7 +174,7 @@ void main() {
       customParams: {'raw': true},
     ),
     content: const UpdateContentData(
-      updateUrl: 'https://example.com/test.apk',
+      updateUrl: testApkUrl,
       title: 'Update available: v1.2.3',
       description: 'Bug fixes and performance improvements.',
       releaseNotesTitle: 'What’s new',
@@ -203,6 +205,7 @@ void main() {
     const parser = ApkUpdateInstallerConfigParser();
     final cfg =
         parser.parse({
+              'apk_url': testApkUrl,
               'file_name': 'my.apk',
               'sha256': 'abc',
               'require_user_confirm': false,
@@ -216,7 +219,10 @@ void main() {
 
   test('ApkUpdateInstaller can cancel installation', () async {
     final installer = ApkUpdateInstaller(dio: dio);
-    const config = ApkUpdateInstallerConfig(fileName: 'test.apk');
+    final config = ApkUpdateInstallerConfig(
+      apkUrl: Uri.parse(testApkUrl),
+      fileName: 'test.apk',
+    );
     final stream = installer.install(mockUpdate, config);
 
     int numberOfEvent = 1;
@@ -268,7 +274,10 @@ void main() {
 
   test('ApkUpdateInstaller confirm installation', () async {
     final installer = ApkUpdateInstaller(dio: dio);
-    const config = ApkUpdateInstallerConfig(fileName: 'test.apk');
+    final config = ApkUpdateInstallerConfig(
+      apkUrl: Uri.parse(testApkUrl),
+      fileName: 'test.apk',
+    );
     final stream = installer.install(mockUpdate, config);
 
     int numberOfEvent = 1;

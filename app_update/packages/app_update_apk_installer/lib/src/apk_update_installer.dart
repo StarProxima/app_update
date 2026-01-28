@@ -61,7 +61,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    covariant ApkUpdateInstallerConfig? config,
+    covariant ApkUpdateInstallerConfig config,
   ) {
     if (_controller != null) {
       return _controller!.stream;
@@ -76,22 +76,15 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
   Future<void> _runPrepareApk(
     Update update,
-    covariant ApkUpdateInstallerConfig? config,
+    covariant ApkUpdateInstallerConfig config,
   ) async {
     final controller = _controller!;
+    final uri = config.apkUrl;
     controller.add(const UpdateInstallationStarted());
-
-    final urlString = update.content.updateUrl.trim();
-    final uri = Uri.tryParse(urlString);
-    if (uri == null) {
-      controller.add(UpdateInstallationFailed('Invalid updateUrl: $urlString'));
-      await _cleanup();
-      return;
-    }
 
     try {
       final fileName =
-          config?.fileName ?? _inferFileName(uri: uri, update: update);
+          config.fileName ?? _inferFileName(uri: uri, update: update);
       final filePath = await _apkFilePath(fileName);
       final updateName = update.updateName;
 
@@ -141,7 +134,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       }
 
       // Validate sha256 checksum
-      final sha256 = config?.sha256;
+      final sha256 = config.sha256;
       if (sha256 != null) {
         final ok = await _validateSha256(file, sha256);
         if (!ok) {
@@ -159,7 +152,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       unawaited(_deleteOldCache(cacheFile.path));
       await file.copy(cacheFile.path);
 
-      final isNeedConfirm = config?.requireUserConfirm ?? requireUserConfirm;
+      final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
       final size = await file.length();
       controller.add(
         UpdateInstallationDownloaded(

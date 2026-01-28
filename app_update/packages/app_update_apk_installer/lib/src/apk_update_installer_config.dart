@@ -7,6 +7,9 @@ import 'package:app_update/app_update.dart';
 final class ApkUpdateInstallerConfig extends UpdateInstallerConfig {
   static const installerName = 'apk_install';
 
+  /// Optional apk URL to download.
+  final Uri apkUrl;
+
   /// Optional filename override.
   final String? fileName;
 
@@ -19,6 +22,7 @@ final class ApkUpdateInstallerConfig extends UpdateInstallerConfig {
   final bool? requireUserConfirm;
 
   const ApkUpdateInstallerConfig({
+    required this.apkUrl,
     this.fileName,
     this.sha256,
     this.requireUserConfirm,

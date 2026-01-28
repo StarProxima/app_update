@@ -12,17 +12,37 @@ final class ApkUpdateInstallerConfigParser
     implements UpdateInstallerConfigParser {
   const ApkUpdateInstallerConfigParser();
 
+  static const _boolParser = BoolParser();
+  static const _stringParser = StringParser();
+  static const _uriParser = UriParser();
+
   @override
   UpdateInstallerConfig parse(dynamic raw) {
-    if (raw is! Map) {
-      return const ApkUpdateInstallerConfig();
+    if (raw is! Map<String, dynamic>) {
+      throw ParseConfigException.wrongType(
+        rightType: Map<String, dynamic>,
+        wrongType: raw.runtimeType,
+        parserType: ApkUpdateInstallerConfigParser,
+        configs: [raw],
+      );
     }
 
-    final fileName = raw['file_name'] as String?;
-    final sha256 = raw['sha256'] as String?;
-    final requireUserConfirm = raw['require_user_confirm'] as bool?;
+    final rawApkUrl = _uriParser.parse(raw['apk_url']);
+    if (rawApkUrl == null) {
+      throw ParseConfigException.requiredParams(
+        params: ['apk_url'],
+        parserType: ApkUpdateInstallerConfigParser,
+        configs: [raw],
+      );
+    }
+    final apkUrl = rawApkUrl;
+
+    final fileName = _stringParser.parse(raw['file_name']);
+    final sha256 = _stringParser.parse(raw['sha256']);
+    final requireUserConfirm = _boolParser.parse(raw['require_user_confirm']);
 
     return ApkUpdateInstallerConfig(
+      apkUrl: apkUrl,
       fileName: fileName,
       sha256: sha256,
       requireUserConfirm: requireUserConfirm,

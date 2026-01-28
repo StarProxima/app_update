@@ -6,6 +6,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../entities/update_installer_name.dart';
 import '../../models/release/update.dart';
 import '../../models/update_installation/update_installation_progress.dart';
+import '../../parser/parse_config_exeption.dart';
+import '../../parser/primitive_parsers/string_parser.dart';
+import '../../parser/primitive_parsers/uri_parser.dart';
 import '../update_installer.dart';
 import '../update_installer_config.dart';
 import '../update_installer_config_parser.dart';
@@ -22,7 +25,7 @@ class StoreRedirectInstaller implements UpdateInstaller {
 
   @override
   UpdateInstallerConfigParser createConfigParser() =>
-      const _StoreRedirectInstallerConfigParser();
+      const StoreRedirectInstallerConfigParser();
 
   @override
   bool supports(Update update) {
@@ -32,28 +35,20 @@ class StoreRedirectInstaller implements UpdateInstaller {
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    covariant StoreRedirectInstallerConfig? config,
+    covariant StoreRedirectInstallerConfig config,
   ) async* {
     yield const UpdateInstallationStarted();
 
     var launchMode = LaunchMode.platformDefault;
-    if (config != null) {
-      final configLaunchMode = config.launchMode;
-      if (configLaunchMode != null) {
-        launchMode = configLaunchMode;
-      }
+    final configLaunchMode = config.launchMode;
+    if (configLaunchMode != null) {
+      launchMode = configLaunchMode;
     }
 
-    final urlString = update.content.updateUrl.trim();
-    final uri = Uri.tryParse(urlString);
-    if (uri == null) {
-      yield UpdateInstallationFailed('Invalid updateUrl: $urlString');
-      return;
-    }
-
+    final uri = config.storeUrl;
     final canLaunch = await canLaunchUrl(uri);
     if (!canLaunch) {
-      yield UpdateInstallationFailed('Cannot launch updateUrl: $urlString');
+      yield UpdateInstallationFailed('Cannot launch updateUrl: $uri');
       return;
     }
 
@@ -63,13 +58,13 @@ class StoreRedirectInstaller implements UpdateInstaller {
       final launched = await launchUrl(uri, mode: launchMode);
       if (!launched) {
         yield UpdateInstallationFailed(
-          'Return false on launch update URL: $urlString',
+          'Return false on launch update URL: $uri',
         );
         return;
       }
     } catch (e, s) {
       yield UpdateInstallationFailed(
-        'Failed to launch update URL: $urlString',
+        'Failed to launch update URL: $uri',
         e,
         s,
       );
@@ -100,27 +95,44 @@ class StoreRedirectInstaller implements UpdateInstaller {
 
 final class StoreRedirectInstallerConfig extends UpdateInstallerConfig {
   final LaunchMode? launchMode;
-  StoreRedirectInstallerConfig(this.launchMode)
+  final Uri storeUrl;
+  StoreRedirectInstallerConfig(this.launchMode, this.storeUrl)
       : super(name: UpdateInstallerName.storeRedirect.name);
 }
 
-final class _StoreRedirectInstallerConfigParser
+final class StoreRedirectInstallerConfigParser
     implements UpdateInstallerConfigParser {
-  const _StoreRedirectInstallerConfigParser();
+  const StoreRedirectInstallerConfigParser();
+
+  static const _stringParser = StringParser();
+  static const _uriParser = UriParser();
 
   @override
   UpdateInstallerConfig parse(dynamic raw) {
-    LaunchMode? launchMode;
-
-    if (raw is Map<String, dynamic>) {
-      final rawLaunchMode = raw['launch_mode'];
-      if (rawLaunchMode is String) {
-        launchMode = LaunchMode.values.firstWhereOrNull(
-          (mode) => mode.name == rawLaunchMode,
-        );
-      }
+    if (raw is! Map<String, dynamic>) {
+      throw ParseConfigException.wrongType(
+        rightType: Map<String, dynamic>,
+        wrongType: raw.runtimeType,
+        parserType: StoreRedirectInstallerConfigParser,
+        configs: [raw],
+      );
     }
 
-    return StoreRedirectInstallerConfig(launchMode);
+    final rawLaunchMode = _stringParser.parse(raw['launch_mode']);
+    final launchMode = LaunchMode.values.firstWhereOrNull(
+      (mode) => mode.name == rawLaunchMode,
+    );
+
+    final rawStoreUrl = _uriParser.parse(raw['store_url']);
+    if (rawStoreUrl == null) {
+      throw ParseConfigException.requiredParams(
+        params: ['store_url'],
+        parserType: StoreRedirectInstallerConfigParser,
+        configs: [raw],
+      );
+    }
+    final storeUrl = rawStoreUrl;
+
+    return StoreRedirectInstallerConfig(launchMode, storeUrl);
   }
 }

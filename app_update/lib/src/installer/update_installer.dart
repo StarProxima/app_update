@@ -27,7 +27,7 @@ abstract interface class UpdateInstaller {
   /// Запускает процесс обновления
   Stream<UpdateInstallationProgress> install(
     Update update,
-    UpdateInstallerConfig? config,
+    UpdateInstallerConfig config,
   );
 
   /// Продолжает установку после состояния Downloaded с флагом isNeedConfirm

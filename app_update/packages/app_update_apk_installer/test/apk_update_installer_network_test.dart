@@ -109,7 +109,8 @@ void main() {
     );
 
     final installer = ApkUpdateInstaller();
-    const config = ApkUpdateInstallerConfig(
+    final config = ApkUpdateInstallerConfig(
+      apkUrl: Uri.parse(url),
       fileName: 'network_test.apk',
       sha256:
           '3f0c2ecac8d7bce683b69fe5b34f2449fcb4dd8d174bf786679d5346071fb476',
