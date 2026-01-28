@@ -226,11 +226,11 @@ abstract interface class UpdateInstaller {
   bool supports(Update update);
   
   /// Запускает процесс обновления
-  /// [config] — настройки Installer'а из YAML (может быть null)
+  /// [config] — настройки Installer'а из YAML
   /// Возвращает Stream для отслеживания прогресса
   Stream<UpdateInstallationProgress> install(
     Update update,
-    UpdateInstallerConfig? config,
+    UpdateInstallerConfig config,
   );
   
   /// Продолжает установку после состояния Downloaded
@@ -392,11 +392,13 @@ platform -> release -> source
 
 
 Логика тогда такая: 
-При парсинге парсим только те инсталлеры, которые зарегистрированы в приложении. Остальные буквально игнорируем. Парсим их при помощи UpdateInstallerConfigParser. Получаем для каждого инсталлера UpdateInstallerConfig (а точнее имплементацию этой модельки)
-В линкере как обычно линкуем всех со всеми + инсталлеры подходящие. То есть в UpdateData появляется поле UpdateInstallerConfig? installer. Именно с ? - потому что также создаём и варианты UpdateData, где инсталлер null.
-Во время searchFull UpdateData с null на месте инсталлера будут уходить вниз по приоритетности, но зато у нас не будут блокаться вообще апдейты, если нет подходящего инсталлера.
-В общем, во время searchFull находим самый подходящий вариант updateData. Приоритет installer-ов аналогично сурсам в UpdateSearchData задаём
+При парсинге парсим только те инсталлеры, которые зарегистрированы в приложении. Остальные буквально игнорируем. Парсим их при помощи их реализации UpdateInstallerConfigParser. Получаем для каждого инсталлера их реализацию UpdateInstallerConfig.
+В линкере как обычно линкуем всех со всеми + инсталлеры подходящие. То есть в UpdateData появляется поле UpdateInstallerConfig? installer. 
+Именно с "?", потому что также создаёмы и варианты UpdateData, где инсталлер null. Во время searchFull UpdateData с null на месте инсталлера будут уходить вниз по приоритетности, чтобы было более приоритетно запустить какой-то крутой installer.
+Если же среди инсталлеров будет StoreRedirect, то он будет забирать на себя считай что все UpdateData, так что обычно будет приоритет: крутые инсталлеры -> StoreRedirect -> отсутствие installer-а.
+В общем, во время searchFull находим самый подходящий вариант updateData. Приоритет installer-ов аналогично сурсам в UpdateSearchData задаём. То есть мы не предоставляем пользователю список доступных installer-ов, а выдаём наиболее приоритетный - по аналогии, как мы делаем с сурсами и прочим.
 Далее при resolve всё как обычно.
-В итоге получаем готовую модельку Update с UpdateInstallerConfig. При запуске installUpdate, мы по UpdateInstallerConfig.name берём UpdateInstaller и в его install закидываем Update и его настройки в UpdateInstallerConfig. Далее магия, которую мы обсуждали
+В итоге получаем готовую модельку Update с UpdateInstallerConfig. При запуске installUpdate, мы по UpdateInstallerConfig.name берём UpdateInstaller и в его install закидываем Update и его настройки в UpdateInstallerConfig. Далее магия установки.
 
-В UpdateData и Update должна быть именно UpdateInstallerConfig, а не UpdateInstallerName (по аналогии с source), потому что source по сути дела хранит в себе только имя, а вот installer состоит из большего числа полей (потенциально). Поле updateUrl так-то просто часть UpdateContentConfig. Но напомню, что по дефолту UpdateInstallerConfig имеет только поле name. Остальные поля он получает в реализациях, так что считай одно и то же.
+В UpdateData и Update должна быть именно UpdateInstallerConfig, а не UpdateInstallerName (по аналогии с source), потому что source по сути дела хранит в себе только имя, а вот installer, обычно, состоит из большего числа полей.
+Поле updateUrl так-то просто часть UpdateContentConfig. И пусть только им и остаётся. Installer не будет использовать его, все нужные ссылки пусть получает из конфига
