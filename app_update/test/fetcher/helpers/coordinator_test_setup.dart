@@ -13,6 +13,7 @@ class CoordinatorTestSetup {
   late MockUpdateSearchDataDefaulter mockDefaulter;
   late MockUpdateConfigSourceFetcher mockSourceFetcher;
   late MockUpdateConfigSourceFetcher mockSourceFetcher2;
+  late UpdateConfigParser updateConfigParser;
   late PackageInfo packageInfo;
   late UpdateSearchConfig baseSearchConfig;
 
@@ -29,7 +30,7 @@ class CoordinatorTestSetup {
       appVersion: localVersion ?? Version.parse('1.0.0'),
       displayTarget: UpdateViewTarget.card,
       appStatus: null,
-      locale: locale ?? const UpdateLocale(Locale('en')),
+      locale: locale ?? UpdateLocale.en,
       currentDate: DateTime(2024, 10, 15),
       localReleaseDate: null,
       updateReleaseDate: null,
@@ -75,9 +76,11 @@ class CoordinatorTestSetup {
 
   void setUp() {
     mockDefaulter = MockUpdateSearchDataDefaulter();
+    updateConfigParser = UpdateConfigParser();
     coordinator = UpdateConfigFetcherCoordinator(
       updateSearchDataDefaulter: mockDefaulter,
       sourceMatcher: const SourceMatcher(),
+      updateConfigParser: updateConfigParser,
     );
 
     mockSourceFetcher = MockUpdateConfigSourceFetcher();
@@ -111,7 +114,7 @@ class CoordinatorTestSetup {
       appVersion: Version.parse('1.0.0'),
       displayTarget: UpdateViewTarget.card,
       appStatus: null,
-      locale: const UpdateLocale(Locale('en')),
+      locale: UpdateLocale.en,
       currentDate: DateTime.now(),
       localReleaseDate: null,
       updateReleaseDate: null,

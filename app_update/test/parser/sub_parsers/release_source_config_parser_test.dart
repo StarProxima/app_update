@@ -6,7 +6,12 @@ import '../helpers/parser_test_helpers.dart';
 
 void main() {
   group('ReleaseSourceConfigParser', () {
-    const parser = ReleaseSourceConfigParser();
+    final updateRulesPartParser = UpdateRulesPartParser(
+      updateSettingsConfigParser: UpdateSettingsConfigParser(),
+    );
+    final parser = ReleaseSourceConfigParser(
+      updateRulesPartParser: updateRulesPartParser,
+    );
 
     test('Короткий синтаксис', () {
       const yamlStr = '''googlePlay''';

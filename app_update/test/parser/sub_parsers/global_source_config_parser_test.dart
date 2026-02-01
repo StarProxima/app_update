@@ -5,7 +5,12 @@ import '../helpers/parser_test_helpers.dart';
 
 void main() {
   group('GlobalSourceConfigParser', () {
-    const parser = GlobalSourceConfigParser();
+    final updateRulesPartParser = UpdateRulesPartParser(
+      updateSettingsConfigParser: UpdateSettingsConfigParser(),
+    );
+    final parser = GlobalSourceConfigParser(
+      updateRulesPartParser: updateRulesPartParser,
+    );
 
     test('Полный набор полей', () {
       const yamlStr = '''

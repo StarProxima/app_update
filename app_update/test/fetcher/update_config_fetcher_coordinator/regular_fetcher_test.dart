@@ -248,6 +248,7 @@ invalid_yaml: [unclosed bracket
       when(() => setup.mockSourceFetcher.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           )).thenAnswer((_) async => sourceConfig);
 
       final regularFetcher = setup.createSimpleFetcher(regularConfig);

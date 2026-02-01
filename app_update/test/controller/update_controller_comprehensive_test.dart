@@ -14,6 +14,7 @@ import 'package:app_update/src/fetcher/update_config_source_fetcher.dart';
 import 'package:app_update/src/models/release/update_data.dart';
 import 'package:app_update/src/models/update_search/update_search_config.dart';
 import 'package:app_update/src/models/update_status/update_status.dart';
+import 'package:app_update/src/parser/update_config_parser.dart';
 import 'package:app_update/src/storage/in_memory_update_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -41,6 +42,7 @@ class MockUpdateConfigSourceFetcher extends Mock
   Future<List<UpdateData>> fetchUpdates({
     required Locale locale,
     required PackageInfo packageInfo,
+    required UpdateConfigParser updateConfigParser,
   }) async =>
       [];
 }

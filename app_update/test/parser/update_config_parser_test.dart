@@ -8,7 +8,7 @@ import 'helpers/parser_test_helpers.dart';
 
 void main() {
   group('UpdateConfigParser (интеграционный)', () {
-    const parser = UpdateConfigParser();
+    final parser = UpdateConfigParser();
 
     test('Парсинг большого конфига из api_v3.yaml', () async {
       final yamlStr =

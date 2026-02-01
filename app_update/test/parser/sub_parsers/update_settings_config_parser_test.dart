@@ -5,7 +5,7 @@ import '../helpers/parser_test_helpers.dart';
 
 void main() {
   group('UpdateSettingsConfigParser', () {
-    const parser = UpdateSettingsConfigParser();
+    final parser = UpdateSettingsConfigParser();
 
     test('Полный набор полей', () {
       const yamlStr = '''

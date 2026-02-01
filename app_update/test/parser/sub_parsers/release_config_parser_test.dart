@@ -7,7 +7,12 @@ import '../helpers/parser_test_helpers.dart';
 
 void main() {
   group('ReleaseConfigParser', () {
-    const parser = ReleaseConfigParser();
+    final updateRulesPartParser = UpdateRulesPartParser(
+      updateSettingsConfigParser: UpdateSettingsConfigParser(),
+    );
+    final parser = ReleaseConfigParser(
+      updateRulesPartParser: updateRulesPartParser,
+    );
 
     test('Парсинг полного набора полей с вложенными источниками', () {
       const yamlStr = '''

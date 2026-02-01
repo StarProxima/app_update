@@ -25,6 +25,7 @@ void main() {
       when(() => setup.mockSourceFetcher.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           )).thenAnswer((_) async => const UpdateConfig());
     });
 
@@ -50,6 +51,7 @@ void main() {
       verify(() => setup.mockSourceFetcher.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           )).called(1);
     });
 
@@ -76,6 +78,7 @@ void main() {
         verifyNever(() => setup.mockSourceFetcher.fetch(
               locale: any(named: 'locale'),
               packageInfo: any(named: 'packageInfo'),
+              updateConfigParser: any(named: 'updateConfigParser'),
             ));
       },
     );
@@ -103,6 +106,7 @@ void main() {
         verify(() => setup.mockSourceFetcher.fetch(
               locale: any(named: 'locale'),
               packageInfo: any(named: 'packageInfo'),
+              updateConfigParser: any(named: 'updateConfigParser'),
             )).called(1);
       },
     );
@@ -130,6 +134,7 @@ void main() {
         verifyNever(() => setup.mockSourceFetcher.fetch(
               locale: any(named: 'locale'),
               packageInfo: any(named: 'packageInfo'),
+              updateConfigParser: any(named: 'updateConfigParser'),
             ));
       },
     );
@@ -155,6 +160,7 @@ void main() {
       when(() => setup.mockSourceFetcher2.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           )).thenAnswer((_) async => const UpdateConfig());
 
       // Act
@@ -209,6 +215,7 @@ void main() {
       when(() => setup.mockSourceFetcher.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           )).thenAnswer((_) async => sourceConfig);
 
       final regularFetcher = setup.createSimpleFetcher(regularConfig);
@@ -250,6 +257,7 @@ void main() {
       verifyNever(() => setup.mockSourceFetcher.fetch(
             locale: any(named: 'locale'),
             packageInfo: any(named: 'packageInfo'),
+            updateConfigParser: any(named: 'updateConfigParser'),
           ));
     });
   });

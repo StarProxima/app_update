@@ -13,6 +13,7 @@ import 'helpers/mock_source_fetchers.dart';
 void main() {
   group('UpdateConfigFetcher', () {
     late MockUpdateConfigParser mockParser;
+    late UpdateConfigParser updateConfigParser;
 
     setUpAll(() {
       // Регистрируем fallback значения
@@ -23,6 +24,7 @@ void main() {
 
     setUp(() {
       mockParser = MockUpdateConfigParser();
+      updateConfigParser = UpdateConfigParser();
     });
 
     group('custom constructor', () {
@@ -35,6 +37,7 @@ void main() {
         final result = await fetcher.fetch(
           locale: const Locale('en'),
           packageInfo: FakePackageInfo(),
+          updateConfigParser: updateConfigParser,
         );
 
         // Assert
@@ -61,13 +64,13 @@ void main() {
 
         final fetcher = UpdateConfigFetcher.customRaw(
           () async => rawData,
-          updateConfigParser: mockParser,
         );
 
         // Act
         final result = await fetcher.fetch(
           locale: const Locale('en'),
           packageInfo: FakePackageInfo(),
+          updateConfigParser: mockParser,
         );
 
         // Assert
@@ -82,7 +85,6 @@ void main() {
 
         final fetcher = UpdateConfigFetcher.customRaw(
           () async => <String, dynamic>{'test': 'data'},
-          updateConfigParser: mockParser,
         );
 
         // Act & Assert
@@ -90,6 +92,7 @@ void main() {
           () => fetcher.fetch(
             locale: const Locale('en'),
             packageInfo: FakePackageInfo(),
+            updateConfigParser: mockParser,
           ),
           throwsA(isA<ParseConfigException>()),
         );
@@ -132,6 +135,7 @@ releases: []
         final result = await fetcher.fetch(
           locale: const Locale('en'),
           packageInfo: FakePackageInfo(),
+          updateConfigParser: updateConfigParser,
         );
 
         // Assert
@@ -154,6 +158,7 @@ releases: []
           () => fetcher.fetch(
             locale: const Locale('en'),
             packageInfo: FakePackageInfo(),
+            updateConfigParser: updateConfigParser,
           ),
           throwsA(isA<YamlException>()),
         );
@@ -199,6 +204,7 @@ releases: []
         final result = await fetcher.fetch(
           locale: const Locale('en'),
           packageInfo: FakePackageInfo(),
+          updateConfigParser: updateConfigParser,
         );
 
         // Assert
@@ -223,6 +229,7 @@ releases: []
             () => fetcher.fetch(
               locale: const Locale('en'),
               packageInfo: FakePackageInfo(),
+              updateConfigParser: updateConfigParser,
             ),
             throwsA(isA<Exception>()),
           );

@@ -11,10 +11,14 @@ class _MockUpdateRuleResolver extends Mock implements UpdateRuleResolver {}
 class _MockUpdateContentInterpolator extends Mock
     implements UpdateContentInterpolator {}
 
+class _MockUpdateInstallersResolver extends Mock
+    implements UpdateInstallersResolver {}
+
 void main() {
   group('UpdateResolver', () {
     late _MockUpdateRuleResolver mockRuleResolver;
     late _MockUpdateContentInterpolator mockContentInterpolator;
+    late _MockUpdateInstallersResolver mockInstallersResolver;
     late UpdateResolver resolver;
 
     setUpAll(() {
@@ -69,9 +73,15 @@ void main() {
     setUp(() {
       mockRuleResolver = _MockUpdateRuleResolver();
       mockContentInterpolator = _MockUpdateContentInterpolator();
+      mockInstallersResolver = _MockUpdateInstallersResolver();
+      when(() => mockInstallersResolver.selectSupportedInstallers(
+            updateData: any(named: 'updateData'),
+            installers: any(named: 'installers'),
+          )).thenReturn({});
       resolver = UpdateResolver(
         ruleResolver: mockRuleResolver,
         contentInterpolator: mockContentInterpolator,
+        installersResolver: mockInstallersResolver,
       );
     });
 

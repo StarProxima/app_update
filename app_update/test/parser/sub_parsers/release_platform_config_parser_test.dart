@@ -6,7 +6,12 @@ import '../helpers/parser_test_helpers.dart';
 
 void main() {
   group('ReleasePlatformConfigParser', () {
-    const parser = ReleasePlatformConfigParser();
+    final updateRulesPartParser = UpdateRulesPartParser(
+      updateSettingsConfigParser: UpdateSettingsConfigParser(),
+    );
+    final parser = ReleasePlatformConfigParser(
+      updateRulesPartParser: updateRulesPartParser,
+    );
 
     test('Короткий синтаксис', () {
       const yamlStr = '''android''';

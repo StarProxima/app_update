@@ -101,6 +101,7 @@ export 'src/resolver/matchers/temporal_matcher.dart';
 export 'src/resolver/matchers/version_matcher.dart';
 export 'src/resolver/matchers/view_target_matcher.dart';
 export 'src/resolver/update_content_interpolator.dart';
+export 'src/resolver/update_installers_resolver.dart';
 export 'src/resolver/update_resolver.dart';
 export 'src/resolver/update_rule_resolver.dart';
 export 'src/searcher/update_search_data_defaulter.dart';
