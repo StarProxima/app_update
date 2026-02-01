@@ -58,7 +58,7 @@ class UpdateControllerImpl implements UpdateController {
   @protected
   UpdateInstaller? get activeInstaller => installerLauncher.activeInstaller;
 
-  bool get isInstalling => activeInstaller?.isInstalling ?? false;
+  bool get isInstalling => installerLauncher.isInstalling;
 
   // Dependencies, can be overridden
   @protected
@@ -276,12 +276,14 @@ class UpdateControllerImpl implements UpdateController {
       throw UpdateInstallerAlreadyActiveException(activeInstaller!);
     }
 
+    // получаем наиболее приоритетный installer и его config
     final installerAndConfig =
         installerLauncher.selectMostPriorityInstaller(update, updateInstallers);
     if (installerAndConfig == null) {
       return null;
     }
 
+    // получаем fallback installer и его config
     final fallbackInstallerAndConfig = fallbackToStoreRedirect
         ? installerLauncher.selectInstallerByType<StoreRedirectInstaller>(
             update,
@@ -289,6 +291,7 @@ class UpdateControllerImpl implements UpdateController {
           )
         : null;
 
+    // запускаем установку
     return installerLauncher.launchInstaller(
       update,
       installerAndConfig,

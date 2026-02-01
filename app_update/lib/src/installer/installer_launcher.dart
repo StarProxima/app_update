@@ -17,7 +17,8 @@ class InstallerLauncher {
       _activeInstallerProgressSubscription;
 
   UpdateInstaller? get activeInstaller => _activeInstaller;
-  bool get isInstalling => _activeInstaller != null;
+  bool get isInstalling =>
+      _activeInstaller != null && activeInstaller!.isInstalling;
 
   List<UpdateInstallerAndConfig> _supportedInstallers(
     Update update,
@@ -64,14 +65,17 @@ class InstallerLauncher {
     UpdateInstallerAndConfig? fallbackInstallerAndConfig,
   ) {
     resetActiveInstaller();
+    // выходной контроллер, в который дублируем прогресс из контроллеров installer'ов
     final controller = StreamController<UpdateInstallationProgress>.broadcast();
 
+    // функция запуска установки installer'а. рекурсивно используется для fallback
     void startInstaller(
       UpdateInstallerAndConfig current,
       UpdateInstallerAndConfig? fallback,
     ) {
       _activeInstaller = current.installer;
 
+      // запуск установки
       final progressStream = current.installer.install(
         update,
         current.config,
@@ -80,6 +84,7 @@ class InstallerLauncher {
       _activeInstallerProgressSubscription?.cancel();
       _activeInstallerProgressSubscription = progressStream.listen(
         (progress) {
+          // если случилась ошибка, вместо UpdateInstallationFailed запускаем установку fallback
           if (progress is UpdateInstallationFailed && fallback != null) {
             startInstaller(fallback, null);
             return;
