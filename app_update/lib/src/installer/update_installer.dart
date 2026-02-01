@@ -2,6 +2,7 @@ import 'dart:async';
 
 import '../entities/update_installer_name.dart';
 import '../models/release/update.dart';
+import '../models/release/update_data.dart';
 import '../models/update_installation/update_installation_progress.dart';
 import 'default_installers/store_redirect_installer.dart';
 import 'update_installer_config.dart';
@@ -22,7 +23,7 @@ abstract interface class UpdateInstaller {
   bool get isInstalling;
 
   /// Проверяет, поддерживает ли исполнитель данное обновление
-  bool supports(Update update);
+  bool supports(UpdateData update);
 
   /// Запускает процесс обновления
   Stream<UpdateInstallationProgress> install(

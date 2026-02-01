@@ -32,4 +32,27 @@ class Update {
   /// <version>_<year>-<month>-<day>
   String get updateName =>
       '$version${date != null ? '_${date!.year}-${date!.month}-${date!.day}' : ''}';
+
+  Update copyWith({
+    Version? version,
+    DateTime? date,
+    UpdateSourceName? sourceName,
+    UpdatePlatform? platform,
+    UpdateContentData? rawContent,
+    UpdateContentData? content,
+    UpdateSettingsData? settings,
+    UpdateAppSettingsData? appSettings,
+    Map<String, dynamic>? customParams,
+  }) =>
+      Update(
+        version: version ?? this.version,
+        date: date ?? this.date,
+        sourceName: sourceName ?? this.sourceName,
+        platform: platform ?? this.platform,
+        rawContent: rawContent ?? this.rawContent,
+        content: content ?? this.content,
+        settings: settings ?? this.settings,
+        appSettings: appSettings ?? this.appSettings,
+        customParams: customParams ?? this.customParams,
+      );
 }

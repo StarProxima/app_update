@@ -1,5 +1,6 @@
 // ignore_for_file: avoid-collection-mutating-methods, prefer-type-over-var, avoid-unnecessary-reassignment
 
+import '../../installer/installer_config_parser_coordinator.dart';
 import '../../models/update_settings/update_settings_config.dart';
 import '../base_parsers/custom_params_parser.dart';
 import '../parse_config_exeption.dart';
@@ -11,7 +12,11 @@ class UpdateSettingsConfigParser {
   static const _durationParser = DurationParser();
   static const _customParamsParser = CustomParamsParser();
 
-  const UpdateSettingsConfigParser();
+  final InstallerConfigParserCoordinator installerConfigParserCoordinator;
+  const UpdateSettingsConfigParser({
+    this.installerConfigParserCoordinator =
+        const InstallerConfigParserCoordinator(),
+  });
 
   UpdateSettingsConfig? parse(
     Object? value, {
@@ -33,6 +38,13 @@ class UpdateSettingsConfigParser {
     // customParams
     final customParamsValue = map.remove('custom_params');
     final customParams = _customParamsParser.parse(customParamsValue);
+
+    // installers
+    final installersValue = map.remove('installers');
+    final installers = installerConfigParserCoordinator.parse(
+      installersValue,
+      isDebug: isDebug,
+    );
 
     // shouldShow
     final shouldShowValue = map.remove('should_show');
@@ -86,6 +98,7 @@ class UpdateSettingsConfigParser {
       skipAllReleasesDelay: skipAllReleasesDelay,
       postponeReleaseDelay: postponeReleaseDelay,
       postponeAllReleasesDelay: postponeAllReleasesDelay,
+      installers: installers,
       customParams: customParams,
     );
   }

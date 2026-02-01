@@ -1,3 +1,5 @@
+import '../../entities/update_installer_name.dart';
+import '../../installer/update_installer_config.dart';
 import '../../utils/mergeable.dart';
 
 class UpdateSettingsConfig implements Mergeable<UpdateSettingsConfig> {
@@ -8,6 +10,7 @@ class UpdateSettingsConfig implements Mergeable<UpdateSettingsConfig> {
   final Duration? skipAllReleasesDelay;
   final Duration? postponeReleaseDelay;
   final Duration? postponeAllReleasesDelay;
+  final Map<UpdateInstallerName, UpdateInstallerConfig>? installers;
   final Map<String, dynamic>? customParams;
 
   const UpdateSettingsConfig({
@@ -18,6 +21,7 @@ class UpdateSettingsConfig implements Mergeable<UpdateSettingsConfig> {
     this.skipAllReleasesDelay,
     this.postponeReleaseDelay,
     this.postponeAllReleasesDelay,
+    this.installers,
     this.customParams,
   });
 
@@ -29,6 +33,7 @@ class UpdateSettingsConfig implements Mergeable<UpdateSettingsConfig> {
     required this.skipAllReleasesDelay,
     required this.postponeReleaseDelay,
     required this.postponeAllReleasesDelay,
+    required this.installers,
     required this.customParams,
   });
 
@@ -45,6 +50,7 @@ class UpdateSettingsConfig implements Mergeable<UpdateSettingsConfig> {
             other.postponeReleaseDelay ?? postponeReleaseDelay,
         postponeAllReleasesDelay:
             other.postponeAllReleasesDelay ?? postponeAllReleasesDelay,
+        installers: Mergeable.mergeMaps(installers, other.installers),
         customParams:
             Mergeable.mergeCustomParams(customParams, other.customParams),
       );

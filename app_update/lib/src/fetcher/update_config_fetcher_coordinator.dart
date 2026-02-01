@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../default_rules/default_update_config.dart';
+import '../installer/installer_config_parser_coordinator.dart';
 import '../models/update_config/update_config.dart';
 import '../models/update_search/update_search_config.dart';
 import '../resolver/matchers/source_matcher.dart';
@@ -30,6 +31,7 @@ class UpdateConfigFetcherCoordinator {
     required PackageInfo packageInfo,
     required bool shouldFetchSourceFetchers,
     required bool shouldFetchFetchers,
+    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
   }) async {
     final configs = <UpdateConfig>[
       // Default config from app_update package
@@ -75,6 +77,8 @@ class UpdateConfigFetcherCoordinator {
             final config = await fetcher.fetch(
               locale: locale,
               packageInfo: packageInfo,
+              installerConfigParserCoordinator:
+                  installerConfigParserCoordinator,
             );
             configs.add(config);
             // ignore: avoid_catching_errors
@@ -90,6 +94,7 @@ class UpdateConfigFetcherCoordinator {
           final config = await fetcher.fetch(
             locale: locale,
             packageInfo: packageInfo,
+            installerConfigParserCoordinator: installerConfigParserCoordinator,
           );
           configs.add(config);
       }

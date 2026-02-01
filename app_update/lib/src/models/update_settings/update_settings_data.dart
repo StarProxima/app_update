@@ -1,3 +1,5 @@
+import '../../entities/update_installer_name.dart';
+import '../../installer/update_installer_config.dart';
 import 'update_settings_config.dart';
 
 class UpdateSettingsData {
@@ -8,6 +10,7 @@ class UpdateSettingsData {
   final Duration skipAllReleasesDelay;
   final Duration postponeReleaseDelay;
   final Duration postponeAllReleasesDelay;
+  final Map<UpdateInstallerName, UpdateInstallerConfig> installers;
   final Map<String, dynamic>? customParams;
 
   bool get canClose => canPostpone || canSkip;
@@ -20,10 +23,14 @@ class UpdateSettingsData {
     required this.skipAllReleasesDelay,
     required this.postponeReleaseDelay,
     required this.postponeAllReleasesDelay,
+    required this.installers,
     required this.customParams,
   });
 
-  factory UpdateSettingsData.fromConfig(UpdateSettingsConfig config) {
+  factory UpdateSettingsData.fromConfig(
+    UpdateSettingsConfig config, {
+    Map<UpdateInstallerName, UpdateInstallerConfig>? installersOverride,
+  }) {
     return UpdateSettingsData(
       shouldShow:
           config.shouldShow ?? (throw ArgumentError('shouldShow is required')),
@@ -38,6 +45,9 @@ class UpdateSettingsData {
           (throw ArgumentError('postponeReleaseDelay is required')),
       postponeAllReleasesDelay: config.postponeAllReleasesDelay ??
           (throw ArgumentError('postponeAllReleasesDelay is required')),
+      installers: installersOverride ??
+          config.installers ??
+          (throw ArgumentError('installers is required')),
       customParams: config.customParams,
     );
   }

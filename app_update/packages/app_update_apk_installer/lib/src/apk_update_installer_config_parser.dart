@@ -27,15 +27,14 @@ final class ApkUpdateInstallerConfigParser
       );
     }
 
-    final rawApkUrl = _uriParser.parse(raw['apk_url']);
-    if (rawApkUrl == null) {
+    final apkUrl = _uriParser.parse(raw['apk_url']);
+    if (apkUrl == null) {
       throw ParseConfigException.requiredParams(
         params: ['apk_url'],
         parserType: ApkUpdateInstallerConfigParser,
         configs: [raw],
       );
     }
-    final apkUrl = rawApkUrl;
 
     final fileName = _stringParser.parse(raw['file_name']);
     final sha256 = _stringParser.parse(raw['sha256']);

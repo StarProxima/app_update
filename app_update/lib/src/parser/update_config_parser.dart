@@ -1,5 +1,6 @@
 // ignore_for_file: avoid-collection-mutating-methods, prefer-type-over-var, avoid-unnecessary-reassignment
 
+import '../installer/installer_config_parser_coordinator.dart';
 import '../models/update_config/update_config.dart';
 import 'base_parsers/custom_params_parser.dart';
 import 'base_parsers/update_rules_container_parser.dart';
@@ -11,11 +12,17 @@ import 'sub_parsers/release_config_parser.dart';
 class UpdateConfigParser {
   static const _releaseConfigParser = ReleaseConfigParser();
   static const _globalSourceConfigParser = GlobalSourceConfigParser();
-  static const _updateRulesPartParser = UpdateRulesPartParser();
   static const _listOrValueParser = ListOrValueParser();
   static const _customParamsParser = CustomParamsParser();
+  UpdateRulesPartParser get _updateRulesPartParser => UpdateRulesPartParser(
+        installerConfigParserCoordinator: installerConfigParserCoordinator,
+      );
+  final InstallerConfigParserCoordinator installerConfigParserCoordinator;
 
-  const UpdateConfigParser();
+  const UpdateConfigParser({
+    this.installerConfigParserCoordinator =
+        const InstallerConfigParserCoordinator(),
+  });
 
   UpdateConfig? parse(
     Object? value, {
@@ -79,6 +86,15 @@ class UpdateConfigParser {
       sources: sources,
       releases: releases,
       customParams: customParams,
+    );
+  }
+
+  UpdateConfigParser copyWith({
+    InstallerConfigParserCoordinator? installerConfigParserCoordinator,
+  }) {
+    return UpdateConfigParser(
+      installerConfigParserCoordinator: installerConfigParserCoordinator ??
+          this.installerConfigParserCoordinator,
     );
   }
 }

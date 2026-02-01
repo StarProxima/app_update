@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_fetcher_coordinator.dart';
 import '../fetcher/update_config_source_fetcher.dart';
+import '../installer/installer_config_parser_coordinator.dart';
 import '../installer/update_installer.dart';
 import '../linker/update_linker.dart';
 import '../models/release/update.dart';
@@ -17,6 +18,7 @@ import '../models/update_search/update_search_config.dart';
 import '../models/update_status/update_status.dart';
 import '../resolver/matchers/source_matcher.dart';
 import '../resolver/update_content_interpolator.dart';
+import '../resolver/update_installers_resolver.dart';
 import '../resolver/update_resolver.dart';
 import '../resolver/update_rule_resolver.dart';
 import '../searcher/update_search_data_defaulter.dart';
@@ -80,9 +82,24 @@ class UpdateControllerImpl implements UpdateController {
   );
 
   @protected
+  late final installersResolver = UpdateInstallersResolver(
+    installers: updateInstallers,
+  );
+
+  @protected
+  late final installerConfigParserCoordinator =
+      InstallerConfigParserCoordinator(
+    installerParsers: {
+      for (final installer in updateInstallers)
+        installer.name.name: installer.createConfigParser(),
+    },
+  );
+
+  @protected
   late final updateResolver = UpdateResolver(
     ruleResolver: ruleResolver,
     contentInterpolator: contentInterpolator,
+    installersResolver: installersResolver,
   );
 
   @protected
@@ -156,6 +173,7 @@ class UpdateControllerImpl implements UpdateController {
       packageInfo: packageInfo,
       shouldFetchSourceFetchers: shouldFetchSourceFetchers,
       shouldFetchFetchers: shouldFetchFetchers,
+      installerConfigParserCoordinator: installerConfigParserCoordinator,
     );
 
     final updates = linker.linkAllConfigs(configs);

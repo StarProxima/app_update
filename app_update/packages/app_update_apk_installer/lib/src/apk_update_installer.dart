@@ -46,11 +46,10 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       const ApkUpdateInstallerConfigParser();
 
   @override
-  bool supports(Update update) {
+  bool supports(UpdateData update) {
     // We only support Android runtime + android updates.
     if (!Platform.isAndroid) return false;
     if (update.platform != UpdatePlatform.android) return false;
-    if (!update.content.updateUrl.trim().endsWith('.apk')) return false;
 
     return true;
   }
@@ -79,8 +78,15 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     covariant ApkUpdateInstallerConfig config,
   ) async {
     final controller = _controller!;
-    final uri = config.apkUrl;
     controller.add(const UpdateInstallationStarted());
+
+    final uri = config.apkUrl;
+    if (!uri.toString().trim().endsWith('.apk')) {
+      controller.add(
+        const UpdateInstallationFailed('APK URL is not a valid APK URL'),
+      );
+      return;
+    }
 
     try {
       final fileName =

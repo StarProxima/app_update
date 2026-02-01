@@ -10,17 +10,21 @@ import '../models/update_settings/update_settings_config.dart';
 import '../models/update_settings/update_settings_data.dart';
 import '../models/update_status/update_status.dart';
 import 'update_content_interpolator.dart';
+import 'update_installers_resolver.dart';
 import 'update_rule_resolver.dart';
 
 class UpdateResolver {
   final UpdateRuleResolver _ruleResolver;
   final UpdateContentInterpolator _contentInterpolator;
+  final UpdateInstallersResolver _installersResolver;
 
   const UpdateResolver({
     required UpdateRuleResolver ruleResolver,
     required UpdateContentInterpolator contentInterpolator,
+    required UpdateInstallersResolver installersResolver,
   })  : _ruleResolver = ruleResolver,
-        _contentInterpolator = contentInterpolator;
+        _contentInterpolator = contentInterpolator,
+        _installersResolver = installersResolver;
 
   UpdateResult resolve({
     required UpdateData updateData,
@@ -80,8 +84,14 @@ class UpdateResolver {
       rules: settingsRules,
     );
 
-    final resolvedSettings = UpdateSettingsData.fromConfig(
+    final supportedInstallers = _installersResolver.selectSupportedInstallers(
+      updateData: updateData,
+      installers: resolvedSettingsConfig.installers,
+    );
+
+    final resolvedSettingsWithInstallers = UpdateSettingsData.fromConfig(
       resolvedSettingsConfig,
+      installersOverride: supportedInstallers,
     );
 
     final mostRelevantUpdate = Update(
@@ -91,7 +101,7 @@ class UpdateResolver {
       platform: updateData.platform,
       rawContent: rawResolvedContent,
       content: resolvedContent,
-      settings: resolvedSettings,
+      settings: resolvedSettingsWithInstallers,
       appSettings: resolvedAppSettings,
       customParams: updateData.customParams,
     );

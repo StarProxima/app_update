@@ -1,5 +1,6 @@
 // ignore_for_file: avoid-collection-mutating-methods, prefer-type-over-var, avoid-unnecessary-reassignment
 
+import '../../installer/installer_config_parser_coordinator.dart';
 import '../../models/update_content/update_content_config.dart';
 import '../../models/update_rule/update_rules_container.dart';
 import '../primitive_parsers/list_or_value_parser.dart';
@@ -12,10 +13,17 @@ class UpdateRulesPartParser {
   static const _updateRuleConfigParser = UpdateRuleConfigParser();
   static const _listOrValueParser = ListOrValueParser();
   static const _updateContentConfigParser = UpdateContentConfigParser();
-  static const _updateSettingsConfigParser = UpdateSettingsConfigParser();
   static const _updateAppStatusConfigParser = UpdateAppSettingsConfigParser();
+  UpdateSettingsConfigParser get _updateSettingsConfigParser =>
+      UpdateSettingsConfigParser(
+        installerConfigParserCoordinator: installerConfigParserCoordinator,
+      );
+  final InstallerConfigParserCoordinator installerConfigParserCoordinator;
 
-  const UpdateRulesPartParser();
+  const UpdateRulesPartParser({
+    this.installerConfigParserCoordinator =
+        const InstallerConfigParserCoordinator(),
+  });
 
   UpdateRulesContainer parse(
     Map<String, dynamic> map, {

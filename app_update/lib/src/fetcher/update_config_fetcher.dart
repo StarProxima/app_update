@@ -7,6 +7,7 @@ import 'dart:ui';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yaml/yaml.dart';
 
+import '../installer/installer_config_parser_coordinator.dart';
 import '../models/update_config/update_config.dart';
 import '../parser/parse_config_exeption.dart';
 import '../parser/update_config_parser.dart';
@@ -51,11 +52,15 @@ interface class UpdateConfigFetcher {
   Future<UpdateConfig> fetch({
     required Locale locale,
     required PackageInfo packageInfo,
+    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
   }) async {
     final fetchRawConfig = _onFetchRawConfig;
     if (fetchRawConfig != null) {
       final result = await fetchRawConfig();
-      final config = _updateConfigParser.parse(
+      final updateConfigParser = _updateConfigParser.copyWith(
+        installerConfigParserCoordinator: installerConfigParserCoordinator,
+      );
+      final config = updateConfigParser.parse(
         result,
         isDebug: true,
       );

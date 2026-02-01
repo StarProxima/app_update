@@ -6,6 +6,7 @@ import 'dart:ui';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../entities/update_source.dart';
+import '../installer/installer_config_parser_coordinator.dart';
 import '../models/release/update_data.dart';
 import '../models/update_config/update_config.dart';
 import '../models/update_content/update_content_config.dart';
@@ -40,6 +41,7 @@ abstract class UpdateConfigSourceFetcher implements UpdateConfigFetcher {
   Future<List<UpdateData>> fetchUpdates({
     required Locale locale,
     required PackageInfo packageInfo,
+    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
   });
 
   Future<UpdateConfig> fetchSourceAppUrl({
@@ -70,9 +72,13 @@ abstract class UpdateConfigSourceFetcher implements UpdateConfigFetcher {
   Future<UpdateConfig> fetch({
     required Locale locale,
     required PackageInfo packageInfo,
+    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
   }) async {
-    final updates = await fetchUpdates(locale: locale, packageInfo: packageInfo)
-        .onError<Object>(
+    final updates = await fetchUpdates(
+      locale: locale,
+      packageInfo: packageInfo,
+      installerConfigParserCoordinator: installerConfigParserCoordinator,
+    ).onError<Object>(
       (e, s) {
         Future.error(e, s);
 

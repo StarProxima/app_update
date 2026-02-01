@@ -7,7 +7,7 @@ import 'package:app_update/app_update.dart';
 final class ApkUpdateInstallerConfig extends UpdateInstallerConfig {
   static const installerName = 'apk_install';
 
-  /// Optional apk URL to download.
+  /// APK URL to download.
   final Uri apkUrl;
 
   /// Optional filename override.
@@ -27,4 +27,13 @@ final class ApkUpdateInstallerConfig extends UpdateInstallerConfig {
     this.sha256,
     this.requireUserConfirm,
   }) : super(name: installerName);
+
+  @override
+  ApkUpdateInstallerConfig merge(covariant ApkUpdateInstallerConfig other) =>
+      ApkUpdateInstallerConfig(
+        apkUrl: other.apkUrl,
+        fileName: other.fileName ?? fileName,
+        sha256: other.sha256 ?? sha256,
+        requireUserConfirm: other.requireUserConfirm ?? requireUserConfirm,
+      );
 }

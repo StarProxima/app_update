@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../entities/update_installer_name.dart';
 import '../../models/release/update.dart';
+import '../../models/release/update_data.dart';
 import '../../models/update_installation/update_installation_progress.dart';
 import '../../parser/parse_config_exeption.dart';
 import '../../parser/primitive_parsers/string_parser.dart';
@@ -28,9 +29,7 @@ class StoreRedirectInstaller implements UpdateInstaller {
       const StoreRedirectInstallerConfigParser();
 
   @override
-  bool supports(Update update) {
-    return update.content.updateUrl.trim().isNotEmpty;
-  }
+  bool supports(UpdateData update) => true;
 
   @override
   Stream<UpdateInstallationProgress> install(
@@ -98,6 +97,15 @@ final class StoreRedirectInstallerConfig extends UpdateInstallerConfig {
   final Uri storeUrl;
   StoreRedirectInstallerConfig(this.launchMode, this.storeUrl)
       : super(name: UpdateInstallerName.storeRedirect.name);
+
+  @override
+  StoreRedirectInstallerConfig merge(
+    covariant StoreRedirectInstallerConfig other,
+  ) =>
+      StoreRedirectInstallerConfig(
+        other.launchMode ?? launchMode,
+        other.storeUrl,
+      );
 }
 
 final class StoreRedirectInstallerConfigParser
@@ -123,15 +131,14 @@ final class StoreRedirectInstallerConfigParser
       (mode) => mode.name == rawLaunchMode,
     );
 
-    final rawStoreUrl = _uriParser.parse(raw['store_url']);
-    if (rawStoreUrl == null) {
+    final storeUrl = _uriParser.parse(raw['store_url']);
+    if (storeUrl == null) {
       throw ParseConfigException.requiredParams(
         params: ['store_url'],
         parserType: StoreRedirectInstallerConfigParser,
         configs: [raw],
       );
     }
-    final storeUrl = rawStoreUrl;
 
     return StoreRedirectInstallerConfig(launchMode, storeUrl);
   }

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../entities/update_source.dart';
+import '../../installer/installer_config_parser_coordinator.dart';
 import '../../models/release/update_data.dart';
 import '../data/app_store_api.dart';
 import '../update_config_source_fetcher.dart';
@@ -36,6 +37,7 @@ class AppStoreFetcher extends UpdateConfigSourceFetcher {
   Future<List<UpdateData>> fetchUpdates({
     required Locale locale,
     required PackageInfo packageInfo,
+    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
   }) {
     // TODO: implement fetchUpdates
     throw UnimplementedError();

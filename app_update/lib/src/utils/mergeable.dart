@@ -23,6 +23,30 @@ abstract class Mergeable<T extends Mergeable<T>> {
     return customParams.isNotEmpty ? customParams : null;
   }
 
+  static Map<K, T>? mergeMaps<K, T extends Mergeable<T>>(
+    Map<K, T>? base,
+    Map<K, T>? incoming,
+  ) {
+    if (base == null && incoming == null) return null;
+
+    final merged = <K, T>{
+      ...?base,
+    };
+
+    if (incoming != null) {
+      for (final entry in incoming.entries) {
+        final existing = merged[entry.key];
+        if (existing == null) {
+          merged[entry.key] = entry.value;
+        } else {
+          merged[entry.key] = existing.merge(entry.value);
+        }
+      }
+    }
+
+    return merged.isNotEmpty ? merged : null;
+  }
+
   static List<UpdateRuleConfig<T>>? mergeRules<T extends Mergeable<T>>(
     List<UpdateRuleConfig<T>>? rules1,
     List<UpdateRuleConfig<T>>? rules2, [
