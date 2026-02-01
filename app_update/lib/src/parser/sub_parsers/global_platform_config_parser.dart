@@ -7,11 +7,14 @@ import '../base_parsers/update_rules_container_parser.dart';
 import '../parse_config_exeption.dart';
 
 class GlobalPlatformConfigParser {
+  final UpdateRulesPartParser _updateRulesPartParser;
+
   static const _updatePlatformParser = UpdatePlatformParser();
-  static const _updateRulesPartParser = UpdateRulesPartParser();
   static const _customParamsParser = CustomParamsParser();
 
-  const GlobalPlatformConfigParser();
+  GlobalPlatformConfigParser({
+    required UpdateRulesPartParser updateRulesPartParser,
+  }) : _updateRulesPartParser = updateRulesPartParser;
 
   GlobalPlatformConfig? parse(
     Object? value, {

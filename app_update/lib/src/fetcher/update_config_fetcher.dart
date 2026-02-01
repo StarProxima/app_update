@@ -7,7 +7,6 @@ import 'dart:ui';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:yaml/yaml.dart';
 
-import '../installer/installer_config_parser_coordinator.dart';
 import '../models/update_config/update_config.dart';
 import '../parser/parse_config_exeption.dart';
 import '../parser/update_config_parser.dart';
@@ -17,7 +16,6 @@ import '../parser/update_config_parser.dart';
 /// Дает интерфейс [fetch]
 /// и предоставляет конструкторы с дефолтной реализацией.
 interface class UpdateConfigFetcher {
-  final UpdateConfigParser _updateConfigParser;
   final FutureOr<Map<String, dynamic>> Function()? _onFetchRawConfig;
   final FutureOr<UpdateConfig> Function()? _onFetchConfig;
 
@@ -26,18 +24,15 @@ interface class UpdateConfigFetcher {
         () => config,
       );
 
-  const UpdateConfigFetcher.custom(
+  UpdateConfigFetcher.custom(
     FutureOr<UpdateConfig> Function() fetchConfig,
   )   : _onFetchConfig = fetchConfig,
-        _onFetchRawConfig = null,
-        _updateConfigParser = const UpdateConfigParser();
+        _onFetchRawConfig = null;
 
-  const UpdateConfigFetcher.customRaw(
-    FutureOr<Map<String, dynamic>> Function() fetchRawConfig, {
-    UpdateConfigParser? updateConfigParser,
-  })  : _onFetchRawConfig = fetchRawConfig,
-        _onFetchConfig = null,
-        _updateConfigParser = updateConfigParser ?? const UpdateConfigParser();
+  UpdateConfigFetcher.customRaw(
+      FutureOr<Map<String, dynamic>> Function() fetchRawConfig)
+      : _onFetchRawConfig = fetchRawConfig,
+        _onFetchConfig = null;
 
   factory UpdateConfigFetcher.byUrl(Uri uri) => UpdateConfigFetcher.customRaw(
         () => _defaultFetchByUrl(uri),
@@ -52,14 +47,11 @@ interface class UpdateConfigFetcher {
   Future<UpdateConfig> fetch({
     required Locale locale,
     required PackageInfo packageInfo,
-    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
+    required UpdateConfigParser updateConfigParser,
   }) async {
     final fetchRawConfig = _onFetchRawConfig;
     if (fetchRawConfig != null) {
       final result = await fetchRawConfig();
-      final updateConfigParser = _updateConfigParser.copyWith(
-        installerConfigParserCoordinator: installerConfigParserCoordinator,
-      );
       final config = updateConfigParser.parse(
         result,
         isDebug: true,

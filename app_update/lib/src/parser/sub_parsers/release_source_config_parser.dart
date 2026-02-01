@@ -9,13 +9,18 @@ import 'release_override_config_parser.dart';
 import 'release_platrform_config_parser.dart';
 
 class ReleaseSourceConfigParser {
+  final UpdateRulesPartParser _updateRulesPartParser;
   static const _updateSourceNameParser = UpdateSourceNameParser();
-  static const _releasePlatformConfigParser = ReleasePlatformConfigParser();
   static const _releaseOverrideConfigParser = ReleaseOverrideConfigParser();
-  static const _updateRulesPartParser = UpdateRulesPartParser();
   static const _customParamsParser = CustomParamsParser();
 
-  const ReleaseSourceConfigParser();
+  late final _releasePlatformConfigParser = ReleasePlatformConfigParser(
+    updateRulesPartParser: _updateRulesPartParser,
+  );
+
+  ReleaseSourceConfigParser({
+    required UpdateRulesPartParser updateRulesPartParser,
+  }) : _updateRulesPartParser = updateRulesPartParser;
 
   ReleaseSourceConfig? parse(
     Object? value, {

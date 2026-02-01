@@ -8,15 +8,15 @@ import '../primitive_parsers/bool_parser.dart';
 import '../primitive_parsers/duration_parser.dart';
 
 class UpdateSettingsConfigParser {
+  final InstallerConfigParserCoordinator? _installerConfigParserCoordinator;
+
   static const _boolParser = BoolParser();
   static const _durationParser = DurationParser();
   static const _customParamsParser = CustomParamsParser();
 
-  final InstallerConfigParserCoordinator installerConfigParserCoordinator;
-  const UpdateSettingsConfigParser({
-    this.installerConfigParserCoordinator =
-        const InstallerConfigParserCoordinator(),
-  });
+  UpdateSettingsConfigParser({
+    InstallerConfigParserCoordinator? installerConfigParserCoordinator,
+  }) : _installerConfigParserCoordinator = installerConfigParserCoordinator;
 
   UpdateSettingsConfig? parse(
     Object? value, {
@@ -41,7 +41,7 @@ class UpdateSettingsConfigParser {
 
     // installers
     final installersValue = map.remove('installers');
-    final installers = installerConfigParserCoordinator.parse(
+    final installers = _installerConfigParserCoordinator?.parse(
       installersValue,
       isDebug: isDebug,
     );

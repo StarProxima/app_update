@@ -16,6 +16,7 @@ import '../models/update_installation/update_installation_result.dart';
 import '../models/update_result/update_result.dart';
 import '../models/update_search/update_search_config.dart';
 import '../models/update_status/update_status.dart';
+import '../parser/update_config_parser.dart';
 import '../resolver/matchers/source_matcher.dart';
 import '../resolver/update_content_interpolator.dart';
 import '../resolver/update_installers_resolver.dart';
@@ -77,6 +78,9 @@ class UpdateControllerImpl implements UpdateController {
   final sourceMatcher = const SourceMatcher();
 
   @protected
+  final installerConfigParserCoordinator = InstallerConfigParserCoordinator();
+
+  @protected
   late final searchDataDefaulter = UpdateSearchDataDefaulter(
     updateSourceChecker: sourceSupportChecker,
   );
@@ -87,15 +91,6 @@ class UpdateControllerImpl implements UpdateController {
   );
 
   @protected
-  late final installerConfigParserCoordinator =
-      InstallerConfigParserCoordinator(
-    installerParsers: {
-      for (final installer in updateInstallers)
-        installer.name.name: installer.createConfigParser(),
-    },
-  );
-
-  @protected
   late final updateResolver = UpdateResolver(
     ruleResolver: ruleResolver,
     contentInterpolator: contentInterpolator,
@@ -103,9 +98,15 @@ class UpdateControllerImpl implements UpdateController {
   );
 
   @protected
+  late final updateConfigParser = UpdateConfigParser(
+    installerConfigParserCoordinator: installerConfigParserCoordinator,
+  );
+
+  @protected
   late final fetcherCoordinator = UpdateConfigFetcherCoordinator(
     updateSearchDataDefaulter: searchDataDefaulter,
     sourceMatcher: sourceMatcher,
+    updateConfigParser: updateConfigParser,
   );
 
   @protected
@@ -148,6 +149,8 @@ class UpdateControllerImpl implements UpdateController {
       await sourceSupportChecker.init();
       await storageManager.cleanup();
 
+      installerConfigParserCoordinator.installers = updateInstallers;
+
       completer.complete();
     } catch (e, s) {
       completer.completeError(e, s);
@@ -173,7 +176,6 @@ class UpdateControllerImpl implements UpdateController {
       packageInfo: packageInfo,
       shouldFetchSourceFetchers: shouldFetchSourceFetchers,
       shouldFetchFetchers: shouldFetchFetchers,
-      installerConfigParserCoordinator: installerConfigParserCoordinator,
     );
 
     final updates = linker.linkAllConfigs(configs);

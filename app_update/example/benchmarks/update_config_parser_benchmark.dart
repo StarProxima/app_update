@@ -25,7 +25,8 @@ List<Map<String, dynamic>> generateReleases(
     } else {
       releases.add({
         // ignore: prefer-moving-to-variable
-        'version': '${random.nextInt(10)}.${random.nextInt(10)}.${random.nextInt(10)}',
+        'version':
+            '${random.nextInt(10)}.${random.nextInt(10)}.${random.nextInt(10)}',
         'build_number': random.nextInt(100),
         'status': 'active',
       });

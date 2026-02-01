@@ -1,21 +1,29 @@
 import '../entities/update_installer_name.dart';
 import '../parser/parse_config_exeption.dart';
+import 'update_installer.dart';
 import 'update_installer_config.dart';
 import 'update_installer_config_parser.dart';
 
 class InstallerConfigParserCoordinator {
-  // TODO а может сделать изменяемым полем, потерять const и быть счастливым?
-  final Map<String, UpdateInstallerConfigParser> installerParsers;
+  Map<String, UpdateInstallerConfigParser> _installerParsers = {};
 
-  const InstallerConfigParserCoordinator({
-    this.installerParsers = const {},
-  });
+  InstallerConfigParserCoordinator();
+
+  // ignore: avoid_setters_without_getters
+  set installers(List<UpdateInstaller> installers) {
+    _installerParsers = {};
+    _installerParsers = {
+      for (final installer in installers)
+        installer.name.name: installer.createConfigParser(),
+    };
+  }
 
   Map<UpdateInstallerName, UpdateInstallerConfig>? parse(
     Object? value, {
     required bool isDebug,
   }) {
     if (value == null) return null;
+    if (_installerParsers.isEmpty && isDebug) return null;
 
     if (value is! Map<String, dynamic>) {
       throw ParseConfigException.wrongType(
@@ -33,7 +41,7 @@ class InstallerConfigParserCoordinator {
       final rawName = entry.key;
       final installerName = UpdateInstallerName.custom(rawName);
 
-      final parser = installerParsers[installerName.name];
+      final parser = _installerParsers[installerName.name];
       if (parser == null) {
         if (isDebug) {
           throw ParseConfigException.unexpectedParams(

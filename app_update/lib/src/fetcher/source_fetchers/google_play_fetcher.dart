@@ -3,8 +3,8 @@ import 'dart:ui';
 import 'package:package_info_plus/package_info_plus.dart';
 
 import '../../entities/update_source.dart';
-import '../../installer/installer_config_parser_coordinator.dart';
 import '../../models/release/update_data.dart';
+import '../../parser/update_config_parser.dart';
 import '../update_config_source_fetcher.dart';
 
 class GooglePlayFetcher extends UpdateConfigSourceFetcher {
@@ -41,8 +41,9 @@ class GooglePlayFetcher extends UpdateConfigSourceFetcher {
   Future<List<UpdateData>> fetchUpdates({
     required Locale locale,
     required PackageInfo packageInfo,
-    required InstallerConfigParserCoordinator installerConfigParserCoordinator,
+    required UpdateConfigParser updateConfigParser,
   }) {
+    // Для in_app_update "updateConfigParser.installerConfigParserCoordinator.parse"
     // TODO: implement fetchUpdates
     throw UnimplementedError();
   }

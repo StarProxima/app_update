@@ -9,12 +9,17 @@ import '../parse_config_exeption.dart';
 import 'global_platform_config_parser.dart';
 
 class GlobalSourceConfigParser {
-  static const _updateSourceNameParser = UpdateSourceNameParser();
-  static const _globalPlatformConfigParser = GlobalPlatformConfigParser();
-  static const _updateRulesPartParser = UpdateRulesPartParser();
-  static const _customParamsParser = CustomParamsParser();
+  final UpdateRulesPartParser _updateRulesPartParser;
 
-  const GlobalSourceConfigParser();
+  static const _updateSourceNameParser = UpdateSourceNameParser();
+  static const _customParamsParser = CustomParamsParser();
+  late final _globalPlatformConfigParser = GlobalPlatformConfigParser(
+    updateRulesPartParser: _updateRulesPartParser,
+  );
+
+  GlobalSourceConfigParser({
+    required UpdateRulesPartParser updateRulesPartParser,
+  }) : _updateRulesPartParser = updateRulesPartParser;
 
   GlobalSourceConfig? parse(
     Object? value, {

@@ -10,14 +10,19 @@ import '../primitive_parsers/version_parser.dart';
 import 'release_source_config_parser.dart';
 
 class ReleaseConfigParser {
+  final UpdateRulesPartParser _updateRulesPartParser;
+
   static const _versionParser = VersionParser();
   static const _dateTimeParser = DateTimeParser();
-  static const _releaseSourceConfigParser = ReleaseSourceConfigParser();
   static const _listOrValueParser = ListOrValueParser();
-  static const _updateRulesPartParser = UpdateRulesPartParser();
   static const _customParamsParser = CustomParamsParser();
+  late final _releaseSourceConfigParser = ReleaseSourceConfigParser(
+    updateRulesPartParser: _updateRulesPartParser,
+  );
 
-  const ReleaseConfigParser();
+  ReleaseConfigParser({
+    required UpdateRulesPartParser updateRulesPartParser,
+  }) : _updateRulesPartParser = updateRulesPartParser;
 
   ReleaseConfig? parse(
     Object? value, {

@@ -8,21 +8,31 @@ import 'parse_config_exeption.dart';
 import 'primitive_parsers/list_or_value_parser.dart';
 import 'sub_parsers/global_source_config_parser.dart';
 import 'sub_parsers/release_config_parser.dart';
+import 'sub_parsers/update_settings_config_parser.dart';
 
 class UpdateConfigParser {
-  static const _releaseConfigParser = ReleaseConfigParser();
-  static const _globalSourceConfigParser = GlobalSourceConfigParser();
+  // for stores fetchers
+  final InstallerConfigParserCoordinator? _installerConfigParserCoordinator;
+
   static const _listOrValueParser = ListOrValueParser();
   static const _customParamsParser = CustomParamsParser();
-  UpdateRulesPartParser get _updateRulesPartParser => UpdateRulesPartParser(
-        installerConfigParserCoordinator: installerConfigParserCoordinator,
-      );
-  final InstallerConfigParserCoordinator installerConfigParserCoordinator;
+  late final UpdateSettingsConfigParser _updateSettingsConfigParser =
+      UpdateSettingsConfigParser(
+    installerConfigParserCoordinator: _installerConfigParserCoordinator,
+  );
+  late final _updateRulesPartParser = UpdateRulesPartParser(
+    updateSettingsConfigParser: _updateSettingsConfigParser,
+  );
+  late final _releaseConfigParser = ReleaseConfigParser(
+    updateRulesPartParser: _updateRulesPartParser,
+  );
+  late final _globalSourceConfigParser = GlobalSourceConfigParser(
+    updateRulesPartParser: _updateRulesPartParser,
+  );
 
-  const UpdateConfigParser({
-    this.installerConfigParserCoordinator =
-        const InstallerConfigParserCoordinator(),
-  });
+  UpdateConfigParser({
+    InstallerConfigParserCoordinator? installerConfigParserCoordinator,
+  }) : _installerConfigParserCoordinator = installerConfigParserCoordinator;
 
   UpdateConfig? parse(
     Object? value, {
@@ -89,12 +99,6 @@ class UpdateConfigParser {
     );
   }
 
-  UpdateConfigParser copyWith({
-    InstallerConfigParserCoordinator? installerConfigParserCoordinator,
-  }) {
-    return UpdateConfigParser(
-      installerConfigParserCoordinator: installerConfigParserCoordinator ??
-          this.installerConfigParserCoordinator,
-    );
-  }
+  InstallerConfigParserCoordinator get installerConfigParserCoordinator =>
+      _installerConfigParserCoordinator ?? InstallerConfigParserCoordinator();
 }
