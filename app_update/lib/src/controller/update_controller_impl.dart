@@ -7,7 +7,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_fetcher_coordinator.dart';
 import '../fetcher/update_config_source_fetcher.dart';
+import '../installer/default_installers/store_redirect_installer.dart';
 import '../installer/installer_config_parser_coordinator.dart';
+import '../installer/installer_launcher.dart';
 import '../installer/update_installer.dart';
 import '../linker/update_linker.dart';
 import '../models/release/update.dart';
@@ -53,15 +55,12 @@ class UpdateControllerImpl implements UpdateController {
   @protected
   List<UpdateData>? updates;
 
-  // Текущий активный Installer для управления lifecycle
   @protected
-  UpdateInstaller? _activeInstaller;
+  UpdateInstaller? get activeInstaller => installerLauncher.activeInstaller;
 
-  bool get isInstalling =>
-      _activeInstaller != null && _activeInstaller!.isInstalling;
+  bool get isInstalling => activeInstaller?.isInstalling ?? false;
 
   // Dependencies, can be overridden
-
   @protected
   final linker = const UpdateLinker();
 
@@ -79,6 +78,9 @@ class UpdateControllerImpl implements UpdateController {
 
   @protected
   final installerConfigParserCoordinator = InstallerConfigParserCoordinator();
+
+  @protected
+  final installerLauncher = InstallerLauncher();
 
   @protected
   late final searchDataDefaulter = UpdateSearchDataDefaulter(
@@ -266,35 +268,54 @@ class UpdateControllerImpl implements UpdateController {
   }
 
   @override
-  Future<UpdateInstallationResult?> installUpdate(Update update) async {
-    // TODO обработать фолбек так: либо отсутствие фоллбека, либо перекидывает на сторРедирект
-    // НЕ добавляем возможность фоллбека с апк инсталлера на, например, inApp, ибо это уже очень редкий кейс, заставляющий нас использовать сложную логику
-    // Для этого случая достаточно просто взять updateInstallers и реализовать своб логику. Или заоверрайдить UpdateControllerImpl.
-    throw Exception('Not impl');
+  UpdateInstallationResult? launchUpdateInstallation(
+    Update update, {
+    bool fallbackToStoreRedirect = true,
+  }) {
+    if (activeInstaller != null) {
+      throw UpdateInstallerAlreadyActiveException(activeInstaller!);
+    }
+
+    final installerAndConfig =
+        installerLauncher.selectMostPriorityInstaller(update, updateInstallers);
+    if (installerAndConfig == null) {
+      return null;
+    }
+
+    final fallbackInstallerAndConfig = fallbackToStoreRedirect
+        ? installerLauncher.selectInstallerByType<StoreRedirectInstaller>(
+            update,
+            updateInstallers,
+          )
+        : null;
+
+    return installerLauncher.launchInstaller(
+      update,
+      installerAndConfig,
+      fallbackInstallerAndConfig,
+    );
   }
 
   @override
   Future<void> confirmUpdateInstallation() async {
-    if (_activeInstaller == null) {
-      throw Exception('No active installer to confirm');
+    if (activeInstaller == null) {
+      throw const UpdateInstallerNotActiveException();
     }
 
-    await _activeInstaller!.confirmInstallation();
+    await activeInstaller!.confirmInstallation();
   }
 
   @override
   Future<void> cancelUpdateInstallation() async {
-    if (_activeInstaller == null) {
-      throw Exception('No active installer to cancel');
+    if (activeInstaller == null) {
+      throw const UpdateInstallerNotActiveException();
     }
 
-    await _activeInstaller!.cancelInstallation();
-    _activeInstaller = null;
+    await activeInstaller!.cancelInstallation();
   }
 
   @override
   void dispose() {
-    _activeInstaller = null;
     for (final installer in updateInstallers) {
       installer.dispose();
     }

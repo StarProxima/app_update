@@ -44,3 +44,17 @@ abstract interface class UpdateInstaller {
     StoreRedirectInstaller(),
   ];
 }
+
+sealed class UpdateInstallingException implements Exception {
+  final UpdateInstaller? installer;
+
+  const UpdateInstallingException(this.installer);
+}
+
+class UpdateInstallerNotActiveException extends UpdateInstallingException {
+  const UpdateInstallerNotActiveException() : super(null);
+}
+
+class UpdateInstallerAlreadyActiveException extends UpdateInstallingException {
+  const UpdateInstallerAlreadyActiveException(UpdateInstaller super.installer);
+}

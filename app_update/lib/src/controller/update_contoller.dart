@@ -4,6 +4,7 @@ import 'dart:async';
 
 import '../fetcher/update_config_fetcher.dart';
 import '../fetcher/update_config_source_fetcher.dart';
+import '../installer/default_installers/store_redirect_installer.dart';
 import '../installer/update_installer.dart';
 import '../models/release/update.dart';
 import '../models/update_installation/update_installation_result.dart';
@@ -67,9 +68,13 @@ abstract interface class UpdateController {
   /// Также откладывает показ всех обновлений на [UpdateSettingsData.postponeAllReleasesDelay].
   Future<void> postponeUpdate(Update update);
 
-  /// Запустить обновление подходящим исполнителем
-  /// Возвращает null если нет подходящего исполнителя
-  Future<UpdateInstallationResult?> installUpdate(Update update);
+  /// Запустить обновление подходящим установщиком
+  /// Возвращает null если нет подходящего установщика
+  /// [fallbackToStoreRedirect] - если true, то при неудачном запуске самого приоритетного установщика будет попытка использования [StoreRedirectInstaller]
+  UpdateInstallationResult? launchUpdateInstallation(
+    Update update, {
+    bool fallbackToStoreRedirect = true,
+  });
 
   /// Подтвердить продолжение выполнения обновления
   Future<void> confirmUpdateInstallation();
