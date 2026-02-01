@@ -22,7 +22,7 @@ class UpdateInstallersResolver {
     for (final entry in installers.entries) {
       final installer = _installersByName[entry.key];
       if (installer == null) continue;
-      if (!installer.supports(updateData)) continue;
+      if (!installer.canLaunch(updateData)) continue;
       supported[entry.key] = entry.value;
     }
 

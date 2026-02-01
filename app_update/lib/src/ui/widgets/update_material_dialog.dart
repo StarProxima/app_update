@@ -89,7 +89,7 @@ class UpdateMaterialDialog extends StatelessWidget {
             ),
           FilledButton(
             onPressed: () async {
-              await controller.installUpdate(update);
+              controller.launchUpdateInstallation(update);
             },
             child: Text(content.updateButton),
           ),

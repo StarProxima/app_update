@@ -23,7 +23,11 @@ abstract interface class UpdateInstaller {
   bool get isInstalling;
 
   /// Проверяет, поддерживает ли исполнитель данное обновление
-  bool supports(UpdateData update);
+  bool canLaunch(UpdateData update);
+
+  /// Проверяет, является ли исполнитель наиболее приоритетным для данного обновления
+  /// Считаем, что canLaunch уже вернул true
+  bool isHighestPriority(Update update);
 
   /// Запускает процесс обновления
   Stream<UpdateInstallationProgress> install(

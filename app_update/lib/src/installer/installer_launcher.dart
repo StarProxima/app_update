@@ -37,14 +37,21 @@ class InstallerLauncher {
     return supportedInstallers;
   }
 
-  UpdateInstallerAndConfig? selectMostPriorityInstaller(
+  UpdateInstallerAndConfig? selectHighestPriorityInstaller(
     Update update,
     List<UpdateInstaller> updateInstallers,
   ) {
     final supportedInstallers = _supportedInstallers(update, updateInstallers);
     if (supportedInstallers.isEmpty) return null;
 
-    // TODO Выбрать самый приоритетный installer из supportedInstallers
+    // ищем installer с наибольшим приоритетом
+    for (final installerAndConfig in supportedInstallers) {
+      if (installerAndConfig.installer.isHighestPriority(update)) {
+        return installerAndConfig;
+      }
+    }
+
+    // иначе приоритет определяется порядком регистрации installer'ов в UpdateController
     return supportedInstallers.first;
   }
 

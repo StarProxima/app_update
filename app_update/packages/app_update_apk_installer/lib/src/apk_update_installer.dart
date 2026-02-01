@@ -46,10 +46,18 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       const ApkUpdateInstallerConfigParser();
 
   @override
-  bool supports(UpdateData update) {
+  bool canLaunch(UpdateData update) {
     // We only support Android runtime + android updates.
     if (!Platform.isAndroid) return false;
     if (update.platform != UpdatePlatform.android) return false;
+
+    return true;
+  }
+
+  @override
+  bool isHighestPriority(Update update) {
+    // In app installer has higher priority than apk.
+    if (update.sourceName == UpdateSourceName.googlePlay) return false;
 
     return true;
   }

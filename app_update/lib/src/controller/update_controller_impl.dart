@@ -277,8 +277,8 @@ class UpdateControllerImpl implements UpdateController {
     }
 
     // получаем наиболее приоритетный installer и его config
-    final installerAndConfig =
-        installerLauncher.selectMostPriorityInstaller(update, updateInstallers);
+    final installerAndConfig = installerLauncher.selectHighestPriorityInstaller(
+        update, updateInstallers);
     if (installerAndConfig == null) {
       return null;
     }

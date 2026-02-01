@@ -29,7 +29,10 @@ class StoreRedirectInstaller implements UpdateInstaller {
       const StoreRedirectInstallerConfigParser();
 
   @override
-  bool supports(UpdateData update) => true;
+  bool canLaunch(UpdateData update) => true;
+
+  @override
+  bool isHighestPriority(Update update) => false;
 
   @override
   Stream<UpdateInstallationProgress> install(
