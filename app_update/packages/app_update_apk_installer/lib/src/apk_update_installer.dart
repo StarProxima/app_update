@@ -23,6 +23,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   final Dio dio;
   final bool requireUserConfirm;
   final ApkInstallerNative _native = ApkInstallerNative();
+  UpdateInstallationProgress _state = const UpdateInstallationInitialized();
 
   ApkUpdateInstaller({
     Dio? dio,
@@ -32,6 +33,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
        _apkDownloadRetryCount = apkDownloadRetryCount;
 
   StreamController<UpdateInstallationProgress>? _controller;
+  StreamSubscription<UpdateInstallationProgress>? _stateSubscription;
   Completer<void>? _confirmCompleter;
   StreamSubscription<dynamic>? _nativeSub;
   CancelToken? _downloadCancelToken;
@@ -40,6 +42,9 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
   @override
   UpdateInstallerName get name => UpdateInstallerName.apkInstall;
+
+  @override
+  UpdateInstallationProgress get lastState => _state;
 
   @override
   UpdateInstallerConfigParser createConfigParser() =>
@@ -63,9 +68,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   }
 
   @override
-  bool get isInstalling => _controller != null;
-
-  @override
   Stream<UpdateInstallationProgress> install(
     Update update,
     covariant ApkUpdateInstallerConfig config,
@@ -74,11 +76,14 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       return _controller!.stream;
     }
 
-    _controller = StreamController<UpdateInstallationProgress>.broadcast();
+    final controller = StreamController<UpdateInstallationProgress>.broadcast();
+    _controller = controller;
     _cancelRequested = false;
 
+    _stateSubscription = controller.stream.listen((event) => _state = event);
+
     unawaited(Future(() => _runPrepareApk(update, config)));
-    return _controller!.stream;
+    return controller.stream;
   }
 
   Future<void> _runPrepareApk(
@@ -86,7 +91,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     covariant ApkUpdateInstallerConfig config,
   ) async {
     final controller = _controller!;
-    controller.add(const UpdateInstallationStarted());
+    controller.add(const UpdateInstallationInitialized());
 
     final uri = config.apkUrl;
     if (!uri.toString().trim().endsWith('.apk')) {
@@ -410,8 +415,10 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     final controller = _controller;
     if (controller != null && !controller.isClosed) {
+      await _stateSubscription?.cancel();
       await controller.close();
     }
+    _stateSubscription = null;
     _controller = null;
   }
 

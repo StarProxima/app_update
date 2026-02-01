@@ -3,11 +3,16 @@ import 'downloaded_update.dart';
 /// Состояния процесса обновления
 sealed class UpdateInstallationProgress {
   const UpdateInstallationProgress();
+
+  bool get isFinal =>
+      this is UpdateInstallationCompleted ||
+      this is UpdateInstallationCancelled ||
+      this is UpdateInstallationFailed;
 }
 
-/// Начало процесса обновления
-class UpdateInstallationStarted extends UpdateInstallationProgress {
-  const UpdateInstallationStarted();
+/// Установщик инициализирован и готов к запуску
+class UpdateInstallationInitialized extends UpdateInstallationProgress {
+  const UpdateInstallationInitialized();
 }
 
 /// Загрузка обновления

@@ -39,7 +39,7 @@ class StoreRedirectInstaller implements UpdateInstaller {
     Update update,
     covariant StoreRedirectInstallerConfig config,
   ) async* {
-    yield const UpdateInstallationStarted();
+    yield const UpdateInstallationInitialized();
 
     var launchMode = LaunchMode.platformDefault;
     final configLaunchMode = config.launchMode;
@@ -77,7 +77,8 @@ class StoreRedirectInstaller implements UpdateInstaller {
   }
 
   @override
-  bool get isInstalling => false;
+  UpdateInstallationProgress get lastState =>
+      const UpdateInstallationInitialized();
 
   @override
   Future<void> confirmInstallation() async {

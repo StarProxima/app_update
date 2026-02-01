@@ -17,8 +17,9 @@ class InstallerLauncher {
       _activeInstallerProgressSubscription;
 
   UpdateInstaller? get activeInstaller => _activeInstaller;
+
   bool get isInstalling =>
-      _activeInstaller != null && activeInstaller!.isInstalling;
+      _activeInstaller != null && !_activeInstaller!.lastState.isFinal;
 
   List<UpdateInstallerAndConfig> _supportedInstallers(
     Update update,
@@ -98,9 +99,7 @@ class InstallerLauncher {
           }
 
           controller.add(progress);
-          if (progress is UpdateInstallationFailed ||
-              progress is UpdateInstallationCancelled ||
-              progress is UpdateInstallationCompleted) {
+          if (progress.isFinal) {
             resetActiveInstaller();
             if (!controller.isClosed) {
               controller.close();

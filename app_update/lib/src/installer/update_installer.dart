@@ -19,8 +19,8 @@ abstract interface class UpdateInstaller {
 
   UpdateInstallerName get name;
 
-  /// Возвращает true, если исполнитель сейчас выполняет установку
-  bool get isInstalling;
+  /// Возвращает текущее состояние исполнителя
+  UpdateInstallationProgress get lastState;
 
   /// Проверяет, поддерживает ли исполнитель данное обновление
   bool canLaunch(UpdateData update);

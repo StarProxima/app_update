@@ -233,7 +233,7 @@ void main() {
     bool streamIsCompleted = false;
     final sub = stream.listen((event) {
       switch (event) {
-        case UpdateInstallationStarted():
+        case UpdateInstallationInitialized():
           expect(numberOfEvent, equals(1));
         case UpdateInstallationDownloading(:final progress):
           expect(progress, greaterThanOrEqualTo(lastProgress));
@@ -289,7 +289,7 @@ void main() {
     final completerCompleted = Completer<void>();
     final sub = stream.listen((event) {
       switch (event) {
-        case UpdateInstallationStarted():
+        case UpdateInstallationInitialized():
           expect(numberOfEvent, equals(1));
         case UpdateInstallationDownloading(:final progress):
           expect(progress, greaterThanOrEqualTo(lastProgress));
