@@ -192,6 +192,7 @@ void main() {
       skipAllReleasesDelay: Duration(days: 30),
       postponeReleaseDelay: Duration(hours: 8),
       postponeAllReleasesDelay: Duration(days: 1),
+      installers: {},
       customParams: {'priority': 'recommended'},
     ),
     appSettings: const UpdateAppSettingsData(

@@ -71,7 +71,7 @@ class UpdateConfigParserBenchmark extends BenchmarkBase {
 
   @override
   void run() {
-    const parser = UpdateConfigParser();
+    final parser = UpdateConfigParser();
 
     final configMap = {
       'release_settings': {

@@ -267,7 +267,6 @@ class UpdateControllerImpl implements UpdateController {
 
   @override
   Future<UpdateInstallationResult?> installUpdate(Update update) async {
-    // TODO implement как договоримся об апи
     // TODO обработать фолбек так: либо отсутствие фоллбека, либо перекидывает на сторРедирект
     // НЕ добавляем возможность фоллбека с апк инсталлера на, например, inApp, ибо это уже очень редкий кейс, заставляющий нас использовать сложную логику
     // Для этого случая достаточно просто взять updateInstallers и реализовать своб логику. Или заоверрайдить UpdateControllerImpl.

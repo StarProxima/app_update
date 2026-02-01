@@ -173,7 +173,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
       customParams: emptyCustom,
     );
 
-    const settings = UpdateSettingsData(
+    final settings = UpdateSettingsData(
       shouldShow: true,
       canSkip: true,
       canPostpone: true,
@@ -181,6 +181,12 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
       skipAllReleasesDelay: Duration(hours: 1),
       postponeReleaseDelay: Duration(minutes: 10),
       postponeAllReleasesDelay: Duration(minutes: 10),
+      installers: {
+        UpdateInstallerName.apkInstall: ApkUpdateInstallerConfig(
+          apkUrl: Uri.parse(url),
+          requireUserConfirm: value.requireConfirm,
+        ),
+      },
       customParams: emptyCustom,
     );
 
