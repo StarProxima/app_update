@@ -20,6 +20,7 @@ class MockUpdateSearchDataDefaulter extends Mock
     implements UpdateSearchDataDefaulter {}
 
 // Fake classes для fallback значений
+// ignore: avoid_implementing_value_types
 class FakePackageInfo extends Fake implements PackageInfo {
   @override
   String get packageName => 'com.test.app';

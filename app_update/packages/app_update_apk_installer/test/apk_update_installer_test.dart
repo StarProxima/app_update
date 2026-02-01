@@ -63,11 +63,11 @@ void main() {
   const apkInstallerEventsChannel = MethodChannel(
     'app_update_apk_installer/events',
   );
-  const _eventCodec = StandardMethodCodec();
+  const eventCodec = StandardMethodCodec();
 
   setUpAll(() {
     void emitNativeEvent(Map<String, Object?> event) {
-      final data = _eventCodec.encodeSuccessEnvelope(event);
+      final data = eventCodec.encodeSuccessEnvelope(event);
       ServicesBinding.instance.defaultBinaryMessenger.handlePlatformMessage(
         'app_update_apk_installer/events',
         data,

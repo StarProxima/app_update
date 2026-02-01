@@ -1,7 +1,5 @@
 // ignore_for_file: prefer-static-class, avoid-long-parameter-list
 
-import 'dart:ui';
-
 import 'package:app_update/app_update.dart';
 import 'package:pub_semver/pub_semver.dart';
 
@@ -35,7 +33,7 @@ UpdateSearchData createTestSearchData({
     appVersion: Version.parse(version),
     displayTarget: target,
     appStatus: appStatus ?? AppStatus.any,
-    locale: locale ?? const UpdateLocale(Locale('ru')),
+    locale: locale ?? UpdateLocale.ru,
     currentDate: currentDate ?? DateTime(2024, 10, 20, 12),
     localReleaseDate: localReleaseDate,
     updateReleaseDate: updateReleaseDate,

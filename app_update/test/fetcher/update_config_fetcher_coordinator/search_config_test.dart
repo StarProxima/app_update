@@ -169,7 +169,7 @@ void main() {
     test('обрабатывает разные локали', () async {
       // Arrange
       final testLocales = [
-        const UpdateLocale(Locale('en')),
+        UpdateLocale.en,
         const UpdateLocale(Locale('ru', 'RU')),
         const UpdateLocale(Locale('fr', 'FR')),
         const UpdateLocale(Locale('de')),
@@ -398,7 +398,7 @@ void main() {
           appVersion: Version.parse('1.0.0'),
           displayTarget: UpdateViewTarget.card,
           appStatus: null,
-          locale: const UpdateLocale(Locale('en')),
+          locale: UpdateLocale.en,
           currentDate: DateTime(2024, 10, 15),
           localReleaseDate: null,
           updateReleaseDate: null,

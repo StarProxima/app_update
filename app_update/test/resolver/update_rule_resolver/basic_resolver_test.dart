@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:app_update/app_update.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pub_semver/pub_semver.dart';
@@ -14,7 +12,7 @@ void main() {
       final rules = [
         createTestRule(
           targets: const [UpdateViewTarget.card],
-          locales: [const UpdateLocale(Locale('ru'))],
+          locales: const [UpdateLocale.ru],
           sources: const [UpdateSource.googlePlay],
           versions: [
             UpdateVersionConstraint(VersionConstraint.parse('>=1.0.0 <2.0.0')),

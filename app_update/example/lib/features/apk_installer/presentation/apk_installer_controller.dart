@@ -177,10 +177,10 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
       shouldShow: true,
       canSkip: true,
       canPostpone: true,
-      skipReleaseDelay: Duration(hours: 1),
-      skipAllReleasesDelay: Duration(hours: 1),
-      postponeReleaseDelay: Duration(minutes: 10),
-      postponeAllReleasesDelay: Duration(minutes: 10),
+      skipReleaseDelay: const Duration(hours: 1),
+      skipAllReleasesDelay: const Duration(hours: 1),
+      postponeReleaseDelay: const Duration(minutes: 10),
+      postponeAllReleasesDelay: const Duration(minutes: 10),
       installers: {
         UpdateInstallerName.apkInstall: ApkUpdateInstallerConfig(
           apkUrl: Uri.parse(url),
