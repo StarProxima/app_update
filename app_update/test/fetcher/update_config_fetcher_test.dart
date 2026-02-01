@@ -142,7 +142,9 @@ releases: []
         expect(result, isA<UpdateConfig>());
 
         // Cleanup
-        tempDir.deleteSync(recursive: true);
+        try {
+          tempDir.deleteSync(recursive: true);
+        } catch (_) {}
       });
 
       test('бросает ошибку для неправильного YAML формата', () async {
@@ -164,7 +166,9 @@ releases: []
         );
 
         // Cleanup
-        tempDir.deleteSync(recursive: true);
+        try {
+          tempDir.deleteSync(recursive: true);
+        } catch (_) {}
       });
     });
 
@@ -211,7 +215,9 @@ releases: []
         expect(result, isA<UpdateConfig>());
 
         // Cleanup
-        tempDir.deleteSync(recursive: true);
+        try {
+          tempDir.deleteSync(recursive: true);
+        } catch (_) {}
       });
     });
 

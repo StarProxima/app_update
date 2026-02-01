@@ -172,7 +172,9 @@ releases:
       expect(result.last.releases.first.version.toString(), '1.5.0');
 
       // Cleanup
-      await tempDir.delete(recursive: true);
+      try {
+        await tempDir.delete(recursive: true);
+      } catch (_) {}
     });
 
     test('прокидывает ошибки от regular fetcher', () {
@@ -228,7 +230,9 @@ invalid_yaml: [unclosed bracket
       );
 
       // Cleanup
-      await tempDir.delete(recursive: true);
+      try {
+        await tempDir.delete(recursive: true);
+      } catch (_) {}
     });
 
     test('смешанные source и regular fetchers', () async {

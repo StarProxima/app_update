@@ -83,6 +83,11 @@ class CoordinatorTestSetup {
       updateConfigParser: updateConfigParser,
     );
 
+    when(() => mockDefaulter.getSearchDataWithDefaults(
+          searchConfig: any(named: 'searchConfig'),
+          packageInfo: any(named: 'packageInfo'),
+        )).thenReturn(createSearchData());
+
     mockSourceFetcher = MockUpdateConfigSourceFetcher();
     mockSourceFetcher2 = MockUpdateConfigSourceFetcher();
 
@@ -108,6 +113,7 @@ class CoordinatorTestSetup {
     registerFallbackValue(FakePackageInfo());
     registerFallbackValue(FakeUpdateSearchConfig());
     registerFallbackValue(const Locale('en'));
+    registerFallbackValue(UpdateConfigParser());
     registerFallbackValue(UpdateSearchData(
       platform: UpdatePlatform.android,
       sources: const [UpdateSource.googlePlay],
