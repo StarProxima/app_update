@@ -81,11 +81,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     try {
       final info = await InAppUpdate.checkForUpdate();
       if (info.updateAvailability == UpdateAvailability.updateNotAvailable) {
-        controller.add(
-          const UpdateInstallationFailed('No update available via Google Play'),
-        );
-        await _cleanup();
-        return;
+        throw Exception('No update available via Google Play');
       }
 
       final updateType = _resolveUpdateType(info, data);
@@ -175,8 +171,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     _installStatusSub = InAppUpdate.installUpdateListener.listen(
       (status) => _handleInstallStatus(controller, status, info, isNeedConfirm),
       onError: (error, stackTrace) {
-        // TODO ошибку норм обработать
-        var completer = _installedCompleter;
+        final completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.completeError(error, stackTrace);
         }
@@ -207,7 +202,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       controller.add(const UpdateInstallationCancelled());
       return;
     }
-    // TODO нужно ли ждать Downloaded? или можно дёрнуть заранее?
+    // TODO нужно ли ждать состояния Downloaded? или можно дёрнуть заранее?
     await InAppUpdate.completeFlexibleUpdate();
 
     await _installedCompleter!.future.timeout(
@@ -236,16 +231,18 @@ final class InAppUpdateInstaller implements UpdateInstaller {
         controller.add(const UpdateInstallationExecuting());
       case InstallStatus.installed:
         controller.add(const UpdateInstallationCompleted());
-      case InstallStatus.failed:
-        controller.add(const UpdateInstallationFailed('In-app update failed'));
-        // TODO ошибку норм обработать
         final completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
-          completer.completeError(StateError('In-app update failed'));
+          completer.complete();
+        }
+      case InstallStatus.failed:
+        controller.add(const UpdateInstallationFailed('In-app update failed'));
+        final completer = _installedCompleter;
+        if (completer != null && !completer.isCompleted) {
+          completer.completeError(Exception('In-app update failed'));
         }
       case InstallStatus.canceled:
         controller.add(const UpdateInstallationCancelled());
-        // TODO ошибку норм обработать
         final completer = _installedCompleter;
         if (completer != null && !completer.isCompleted) {
           completer.complete();
