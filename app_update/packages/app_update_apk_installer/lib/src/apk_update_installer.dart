@@ -82,7 +82,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     _stateSubscription = controller.stream.listen((event) => _state = event);
 
-    unawaited(Future(() => _runPrepareApk(update, config)));
+    Future(() => _runPrepareApk(update, config));
     return controller.stream;
   }
 
