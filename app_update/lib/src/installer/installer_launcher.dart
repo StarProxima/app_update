@@ -6,9 +6,9 @@ import '../models/update_installation/update_installation_result.dart';
 import 'update_installer.dart';
 import 'update_installer_config.dart';
 
-typedef UpdateInstallerAndConfig = ({
+typedef UpdateInstallerAndData = ({
   UpdateInstaller installer,
-  UpdateInstallerConfig config
+  UpdateInstallerData data
 });
 
 class InstallerLauncher {
@@ -21,24 +21,24 @@ class InstallerLauncher {
   bool get isInstalling =>
       _activeInstaller != null && !_activeInstaller!.lastState.isFinal;
 
-  List<UpdateInstallerAndConfig> _supportedInstallers(
+  List<UpdateInstallerAndData> _supportedInstallers(
     Update update,
     List<UpdateInstaller> updateInstallers,
   ) {
-    final installerConfigs = update.settings.installers;
-    if (installerConfigs.isEmpty) return [];
+    final installerDatas = update.settings.installers;
+    if (installerDatas.isEmpty) return [];
 
-    final supportedInstallers = <UpdateInstallerAndConfig>[];
+    final supportedInstallers = <UpdateInstallerAndData>[];
     for (final installer in updateInstallers) {
-      final config = installerConfigs[installer.name];
-      if (config == null) continue;
-      supportedInstallers.add((installer: installer, config: config));
+      final data = installerDatas[installer.name];
+      if (data == null) continue;
+      supportedInstallers.add((installer: installer, data: data));
     }
 
     return supportedInstallers;
   }
 
-  UpdateInstallerAndConfig? selectHighestPriorityInstaller(
+  UpdateInstallerAndData? selectHighestPriorityInstaller(
     Update update,
     List<UpdateInstaller> updateInstallers,
   ) {
@@ -46,9 +46,9 @@ class InstallerLauncher {
     if (supportedInstallers.isEmpty) return null;
 
     // ищем installer с наибольшим приоритетом
-    for (final installerAndConfig in supportedInstallers) {
-      if (installerAndConfig.installer.isHighestPriority(update)) {
-        return installerAndConfig;
+    for (final installerAndData in supportedInstallers) {
+      if (installerAndData.installer.isHighestPriority(update)) {
+        return installerAndData;
       }
     }
 
@@ -56,7 +56,7 @@ class InstallerLauncher {
     return supportedInstallers.first;
   }
 
-  UpdateInstallerAndConfig? selectInstallerByType<T extends UpdateInstaller>(
+  UpdateInstallerAndData? selectInstallerByType<T extends UpdateInstaller>(
     Update update,
     List<UpdateInstaller> updateInstallers,
   ) {
@@ -69,8 +69,8 @@ class InstallerLauncher {
 
   UpdateInstallationResult launchInstaller(
     Update update,
-    UpdateInstallerAndConfig installerAndConfig,
-    UpdateInstallerAndConfig? fallbackInstallerAndConfig,
+    UpdateInstallerAndData installerAndData,
+    UpdateInstallerAndData? fallbackInstallerAndData,
   ) {
     resetActiveInstaller();
     // выходной контроллер, в который дублируем прогресс из контроллеров installer'ов
@@ -78,15 +78,15 @@ class InstallerLauncher {
 
     // функция запуска установки installer'а. рекурсивно используется для fallback
     void startInstaller(
-      UpdateInstallerAndConfig current,
-      UpdateInstallerAndConfig? fallback,
+      UpdateInstallerAndData current,
+      UpdateInstallerAndData? fallback,
     ) {
       _activeInstaller = current.installer;
 
       // запуск установки
       final progressStream = current.installer.install(
         update,
-        current.config,
+        current.data,
       );
 
       _activeInstallerProgressSubscription?.cancel();
@@ -128,12 +128,12 @@ class InstallerLauncher {
     }
 
     startInstaller(
-      installerAndConfig,
-      fallbackInstallerAndConfig,
+      installerAndData,
+      fallbackInstallerAndData,
     );
 
     return UpdateInstallationResult(
-      installerName: installerAndConfig.installer.name,
+      installerName: installerAndData.installer.name,
       progressStream: controller.stream,
     );
   }

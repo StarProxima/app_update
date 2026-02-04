@@ -1,18 +1,15 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../entities/update_installer_name.dart';
 import '../../models/release/update.dart';
 import '../../models/release/update_data.dart';
 import '../../models/update_installation/update_installation_progress.dart';
-import '../../parser/parse_config_exeption.dart';
-import '../../parser/primitive_parsers/string_parser.dart';
-import '../../parser/primitive_parsers/uri_parser.dart';
 import '../update_installer.dart';
-import '../update_installer_config.dart';
 import '../update_installer_config_parser.dart';
+import 'store_redirect_installer_config.dart';
+import 'store_redirect_installer_config_parser.dart';
 
 /// Default fallback installer that redirects user to the store (or any URL)
 /// using Update.content.updateUrl.
@@ -37,7 +34,7 @@ class StoreRedirectInstaller implements UpdateInstaller {
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    covariant StoreRedirectInstallerConfig config,
+    covariant StoreRedirectInstallerData config,
   ) async* {
     yield const UpdateInstallationInitialized();
 
@@ -93,57 +90,5 @@ class StoreRedirectInstaller implements UpdateInstaller {
   @override
   void dispose() {
     // No resources to dispose.
-  }
-}
-
-final class StoreRedirectInstallerConfig extends UpdateInstallerConfig {
-  final LaunchMode? launchMode;
-  final Uri storeUrl;
-  StoreRedirectInstallerConfig(this.launchMode, this.storeUrl)
-      : super(name: UpdateInstallerName.storeRedirect.name);
-
-  @override
-  StoreRedirectInstallerConfig merge(
-    covariant StoreRedirectInstallerConfig other,
-  ) =>
-      StoreRedirectInstallerConfig(
-        other.launchMode ?? launchMode,
-        other.storeUrl,
-      );
-}
-
-final class StoreRedirectInstallerConfigParser
-    implements UpdateInstallerConfigParser {
-  const StoreRedirectInstallerConfigParser();
-
-  static const _stringParser = StringParser();
-  static const _uriParser = UriParser();
-
-  @override
-  UpdateInstallerConfig parse(dynamic raw) {
-    if (raw is! Map<String, dynamic>) {
-      throw ParseConfigException.wrongType(
-        rightType: Map<String, dynamic>,
-        wrongType: raw.runtimeType,
-        parserType: StoreRedirectInstallerConfigParser,
-        configs: [raw],
-      );
-    }
-
-    final rawLaunchMode = _stringParser.parse(raw['launch_mode']);
-    final launchMode = LaunchMode.values.firstWhereOrNull(
-      (mode) => mode.name == rawLaunchMode,
-    );
-
-    final storeUrl = _uriParser.parse(raw['store_url']);
-    if (storeUrl == null) {
-      throw ParseConfigException.requiredParams(
-        params: ['store_url'],
-        parserType: StoreRedirectInstallerConfigParser,
-        configs: [raw],
-      );
-    }
-
-    return StoreRedirectInstallerConfig(launchMode, storeUrl);
   }
 }

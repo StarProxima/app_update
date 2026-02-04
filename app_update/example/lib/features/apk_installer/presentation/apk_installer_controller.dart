@@ -72,7 +72,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
     _installer = _installer ?? ApkUpdateInstaller();
 
     final update = _buildFakeUpdate(normalizedUrl);
-    final config = ApkUpdateInstallerConfig(
+    final data = ApkUpdateInstallerData(
       apkUrl: Uri.parse(normalizedUrl),
       fileName: (fileName == null || fileName.isEmpty) ? null : fileName,
       sha256: (sha256 == null || sha256.isEmpty) ? null : sha256,
@@ -83,7 +83,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
       'Starting install. url=$normalizedUrl requireConfirm=${value.requireConfirm}',
     );
 
-    final stream = _installer!.install(update, config);
+    final stream = _installer!.install(update, data);
     _sub = stream.listen(
       (p) {
         value = value.copyWith(lastProgress: p);
@@ -182,7 +182,7 @@ class ApkInstallerController extends ValueNotifier<ApkInstallerState> {
       postponeReleaseDelay: const Duration(minutes: 10),
       postponeAllReleasesDelay: const Duration(minutes: 10),
       installers: {
-        UpdateInstallerName.apkInstall: ApkUpdateInstallerConfig(
+        UpdateInstallerName.apkInstall: ApkUpdateInstallerData(
           apkUrl: Uri.parse(url),
           requireUserConfirm: value.requireConfirm,
         ),

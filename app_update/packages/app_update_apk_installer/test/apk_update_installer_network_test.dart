@@ -110,13 +110,13 @@ void main() {
     );
 
     final installer = ApkUpdateInstaller();
-    final config = ApkUpdateInstallerConfig(
+    final data = ApkUpdateInstallerData(
       apkUrl: Uri.parse(url),
       fileName: 'network_test.apk',
       sha256:
           '3f0c2ecac8d7bce683b69fe5b34f2449fcb4dd8d174bf786679d5346071fb476',
     );
-    final stream = installer.install(mockUpdate, config);
+    final stream = installer.install(mockUpdate, data);
 
     final cancelled = Completer<void>();
     bool sawDownloading = false;

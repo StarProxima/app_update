@@ -276,15 +276,15 @@ class UpdateControllerImpl implements UpdateController {
       throw UpdateInstallerAlreadyActiveException(activeInstaller!);
     }
 
-    // получаем наиболее приоритетный installer и его config
-    final installerAndConfig = installerLauncher.selectHighestPriorityInstaller(
+    // получаем наиболее приоритетный installer и его data
+    final installerAndData = installerLauncher.selectHighestPriorityInstaller(
         update, updateInstallers);
-    if (installerAndConfig == null) {
+    if (installerAndData == null) {
       return null;
     }
 
-    // получаем fallback installer и его config
-    final fallbackInstallerAndConfig = fallbackToStoreRedirect
+    // получаем fallback installer и его data
+    final fallbackInstallerAndData = fallbackToStoreRedirect
         ? installerLauncher.selectInstallerByType<StoreRedirectInstaller>(
             update,
             updateInstallers,
@@ -294,8 +294,8 @@ class UpdateControllerImpl implements UpdateController {
     // запускаем установку
     return installerLauncher.launchInstaller(
       update,
-      installerAndConfig,
-      fallbackInstallerAndConfig,
+      installerAndData,
+      fallbackInstallerAndData,
     );
   }
 

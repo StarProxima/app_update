@@ -10,7 +10,7 @@ class UpdateSettingsData {
   final Duration skipAllReleasesDelay;
   final Duration postponeReleaseDelay;
   final Duration postponeAllReleasesDelay;
-  final Map<UpdateInstallerName, UpdateInstallerConfig> installers;
+  final Map<UpdateInstallerName, UpdateInstallerData> installers;
   final Map<String, dynamic>? customParams;
 
   bool get canClose => canPostpone || canSkip;
@@ -31,6 +31,12 @@ class UpdateSettingsData {
     UpdateSettingsConfig config, {
     Map<UpdateInstallerName, UpdateInstallerConfig>? installersOverride,
   }) {
+    final installers = installersOverride ??
+        config.installers ??
+        (throw ArgumentError('installers is required'));
+    final installersData =
+        installers.map((key, value) => MapEntry(key, value.toData()));
+
     return UpdateSettingsData(
       shouldShow:
           config.shouldShow ?? (throw ArgumentError('shouldShow is required')),
@@ -45,9 +51,7 @@ class UpdateSettingsData {
           (throw ArgumentError('postponeReleaseDelay is required')),
       postponeAllReleasesDelay: config.postponeAllReleasesDelay ??
           (throw ArgumentError('postponeAllReleasesDelay is required')),
-      installers: installersOverride ??
-          config.installers ??
-          (throw ArgumentError('installers is required')),
+      installers: installersData,
       customParams: config.customParams,
     );
   }

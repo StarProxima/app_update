@@ -71,7 +71,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    covariant ApkUpdateInstallerConfig config,
+    covariant ApkUpdateInstallerData data,
   ) {
     if (_controller != null) {
       return _controller!.stream;
@@ -83,18 +83,18 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     _stateSubscription = controller.stream.listen((event) => _state = event);
 
-    Future(() => _runPrepareApk(update, config));
+    Future(() => _runPrepareApk(update, data));
     return controller.stream;
   }
 
   Future<void> _runPrepareApk(
     Update update,
-    covariant ApkUpdateInstallerConfig config,
+    covariant ApkUpdateInstallerData data,
   ) async {
     final controller = _controller!;
     controller.add(const UpdateInstallationInitialized());
 
-    final uri = config.apkUrl;
+    final uri = data.apkUrl;
     if (!uri.toString().trim().endsWith('.apk')) {
       controller.add(
         const UpdateInstallationFailed('APK URL is not a valid APK URL'),
@@ -104,7 +104,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
 
     try {
       final fileName =
-          config.fileName ?? _inferFileName(uri: uri, update: update);
+          data.fileName ?? _inferFileName(uri: uri, update: update);
       final filePath = await _apkFilePath(fileName);
       final updateName = update.updateName;
 
@@ -149,7 +149,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       await _apkFileValidator.validateFormat(file);
 
       // Validate sha256 checksum
-      final sha256 = config.sha256;
+      final sha256 = data.sha256;
       if (sha256 != null) {
         await _apkFileValidator.validateSha256(file, sha256);
       }
@@ -158,7 +158,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       unawaited(_deleteOldCache(cacheFile.path));
       await file.copy(cacheFile.path);
 
-      final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
+      final isNeedConfirm = data.requireUserConfirm ?? requireUserConfirm;
       final size = await file.length();
       controller.add(
         UpdateInstallationDownloaded(

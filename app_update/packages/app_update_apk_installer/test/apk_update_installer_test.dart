@@ -220,11 +220,11 @@ void main() {
 
   test('ApkUpdateInstaller can cancel installation', () async {
     final installer = ApkUpdateInstaller(dio: dio);
-    final config = ApkUpdateInstallerConfig(
+    final data = ApkUpdateInstallerData(
       apkUrl: Uri.parse(testApkUrl),
       fileName: 'test.apk',
     );
-    final stream = installer.install(mockUpdate, config);
+    final stream = installer.install(mockUpdate, data);
 
     int numberOfEvent = 1;
     double lastProgress = 0;
@@ -275,11 +275,11 @@ void main() {
 
   test('ApkUpdateInstaller confirm installation', () async {
     final installer = ApkUpdateInstaller(dio: dio);
-    final config = ApkUpdateInstallerConfig(
+    final data = ApkUpdateInstallerData(
       apkUrl: Uri.parse(testApkUrl),
       fileName: 'test.apk',
     );
-    final stream = installer.install(mockUpdate, config);
+    final stream = installer.install(mockUpdate, data);
 
     int numberOfEvent = 1;
     double lastProgress = 0;
