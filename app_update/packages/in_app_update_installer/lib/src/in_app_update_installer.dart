@@ -25,7 +25,9 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     this.canChangeUpdateType = true,
   });
 
+  UpdateInstallationProgress _state = const UpdateInstallationInitialized();
   StreamController<UpdateInstallationProgress>? _controller;
+  StreamSubscription<UpdateInstallationProgress>? _stateSubscription;
   StreamSubscription<InstallStatus>? _installStatusSub;
   Completer<void>? _confirmCompleter;
   Completer<void>? _installedCompleter;
@@ -35,43 +37,46 @@ final class InAppUpdateInstaller implements UpdateInstaller {
   UpdateInstallerName get name => UpdateInstallerName.inAppUpdate;
 
   @override
+  UpdateInstallationProgress get lastState => _state;
+
+  @override
   UpdateInstallerConfigParser createConfigParser() =>
       const InAppUpdateInstallerConfigParser();
 
   @override
-  bool supports(Update update) {
+  bool canLaunch(UpdateData update) {
     if (!Platform.isAndroid) return false;
-    if (update.platform != UpdatePlatform.android &&
-        update.platform != UpdatePlatform.any) {
-      return false;
-    }
+    if (update.platform != UpdatePlatform.android) return false;
+
     return update.sourceName == UpdateSourceName.googlePlay;
+  }
+
+  @override
+  bool isHighestPriority(Update update) {
+    return (update.sourceName == UpdateSourceName.googlePlay);
   }
 
   @override
   Stream<UpdateInstallationProgress> install(
     Update update,
-    UpdateInstallerConfig? config,
+    covariant InAppUpdateInstallerData data,
   ) {
     if (_controller != null) {
       return _controller!.stream;
     }
 
-    _controller = StreamController<UpdateInstallationProgress>.broadcast();
+    final controller = StreamController<UpdateInstallationProgress>.broadcast();
+    _controller = controller;
 
-    unawaited(Future(() => _run(update, config)));
-    return _controller!.stream;
+    _stateSubscription = controller.stream.listen((event) => _state = event);
+
+    Future(() => _run(update, data));
+    return controller.stream;
   }
 
-  Future<void> _run(Update update, UpdateInstallerConfig? config) async {
+  Future<void> _run(Update update, InAppUpdateInstallerData data) async {
     final controller = _controller!;
-    controller.add(const UpdateInstallationStarted());
-
-    final parsedConfig = switch (config) {
-      null => const InAppUpdateInstallerConfig(),
-      InAppUpdateInstallerConfig() => config,
-      _ => throw ArgumentError('Config is not InAppUpdateInstallerConfig'),
-    };
+    controller.add(const UpdateInstallationInitialized());
 
     try {
       final info = await InAppUpdate.checkForUpdate();
@@ -83,11 +88,11 @@ final class InAppUpdateInstaller implements UpdateInstaller {
         return;
       }
 
-      final updateType = _resolveUpdateType(info, parsedConfig);
+      final updateType = _resolveUpdateType(info, data);
       if (updateType == InAppUpdateType.immediate) {
         await _runImmediateUpdate(controller, info);
       } else {
-        await _runFlexibleUpdate(controller, info, parsedConfig);
+        await _runFlexibleUpdate(controller, info, data);
       }
     } on PlatformException catch (e, s) {
       controller.add(
@@ -106,12 +111,12 @@ final class InAppUpdateInstaller implements UpdateInstaller {
 
   InAppUpdateType _resolveUpdateType(
     AppUpdateInfo info,
-    InAppUpdateInstallerConfig config,
+    InAppUpdateInstallerData data,
   ) {
-    final requestedType = config.updateType ?? updateType;
+    final requestedType = data.updateType ?? updateType;
     final otherType = requestedType.other;
     final canChangeUpdateType =
-        config.canChangeUpdateType ?? this.canChangeUpdateType;
+        data.canChangeUpdateType ?? this.canChangeUpdateType;
 
     final typeAllowed = {
       InAppUpdateType.immediate: info.immediateUpdateAllowed,
@@ -157,10 +162,10 @@ final class InAppUpdateInstaller implements UpdateInstaller {
   Future<void> _runFlexibleUpdate(
     StreamController<UpdateInstallationProgress> controller,
     AppUpdateInfo info,
-    InAppUpdateInstallerConfig config,
+    InAppUpdateInstallerData data,
   ) async {
     _installedCompleter = Completer<void>();
-    final isNeedConfirm = config.requireUserConfirm ?? requireUserConfirm;
+    final isNeedConfirm = data.requireUserConfirm ?? requireUserConfirm;
 
     if (_cancelRequested) {
       controller.add(const UpdateInstallationCancelled());
@@ -255,7 +260,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     bool isNeedConfirm,
   ) => UpdateInstallationDownloaded(
     downloadedUpdate: DownloadedUpdate(
-      isBackup: false,
+      isCached: false,
       metadata: {
         'packageName': info.packageName,
         'availableVersionCode': info.availableVersionCode,
@@ -290,8 +295,10 @@ final class InAppUpdateInstaller implements UpdateInstaller {
 
     final controller = _controller;
     if (controller != null && !controller.isClosed) {
+      await _stateSubscription?.cancel();
       await controller.close();
     }
+    _stateSubscription = null;
     _controller = null;
   }
 
