@@ -31,6 +31,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
   StreamSubscription<InstallStatus>? _installStatusSub;
   Completer<void>? _confirmCompleter;
   Completer<void>? _installedCompleter;
+  Completer<void>? _downloadedCompleter;
   bool _cancelRequested = false;
 
   @override
@@ -161,6 +162,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     InAppUpdateInstallerData data,
   ) async {
     _installedCompleter = Completer<void>();
+    _downloadedCompleter = Completer<void>();
     final isNeedConfirm = data.requireUserConfirm ?? requireUserConfirm;
 
     if (_cancelRequested) {
@@ -171,10 +173,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     _installStatusSub = InAppUpdate.installUpdateListener.listen(
       (status) => _handleInstallStatus(controller, status, info, isNeedConfirm),
       onError: (error, stackTrace) {
-        final completer = _installedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.completeError(error, stackTrace);
-        }
+        _installedCompleter?.completeError(error, stackTrace);
       },
     );
 
@@ -192,6 +191,19 @@ final class InAppUpdateInstaller implements UpdateInstaller {
         return;
     }
 
+    // Wait for download to complete
+    await _downloadedCompleter!.future.timeout(
+      const Duration(minutes: 15),
+      onTimeout:
+          () => throw TimeoutException('In-app update download timed out'),
+    );
+
+    if (_cancelRequested) {
+      controller.add(const UpdateInstallationCancelled());
+      return;
+    }
+
+    // Wait for user confirm
     if (isNeedConfirm) {
       _confirmCompleter = Completer<void>();
       await _confirmCompleter!.future;
@@ -202,16 +214,14 @@ final class InAppUpdateInstaller implements UpdateInstaller {
       controller.add(const UpdateInstallationCancelled());
       return;
     }
-    // TODO нужно ли ждать состояния Downloaded? или можно дёрнуть заранее?
+
+    // Complete update
     await InAppUpdate.completeFlexibleUpdate();
 
     await _installedCompleter!.future.timeout(
       const Duration(minutes: 10),
-      onTimeout: () {
-        controller.add(
-          const UpdateInstallationFailed('In-app update timed out'),
-        );
-      },
+      onTimeout:
+          () => throw TimeoutException('In-app update complete timed out'),
     );
   }
 
@@ -227,26 +237,18 @@ final class InAppUpdateInstaller implements UpdateInstaller {
         controller.add(const UpdateInstallationDownloading());
       case InstallStatus.downloaded:
         controller.add(_createDownloadedStatus(info, isNeedConfirm));
+        _downloadedCompleter?.complete();
       case InstallStatus.installing:
         controller.add(const UpdateInstallationExecuting());
       case InstallStatus.installed:
         controller.add(const UpdateInstallationCompleted());
-        final completer = _installedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.complete();
-        }
+        _installedCompleter?.complete();
       case InstallStatus.failed:
         controller.add(const UpdateInstallationFailed('In-app update failed'));
-        final completer = _installedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.completeError(Exception('In-app update failed'));
-        }
+        _installedCompleter?.completeError(Exception('In-app update failed'));
       case InstallStatus.canceled:
         controller.add(const UpdateInstallationCancelled());
-        final completer = _installedCompleter;
-        if (completer != null && !completer.isCompleted) {
-          completer.complete();
-        }
+        _installedCompleter?.complete();
       case InstallStatus.unknown:
         break;
     }
@@ -286,6 +288,7 @@ final class InAppUpdateInstaller implements UpdateInstaller {
     await _installStatusSub?.cancel();
     _installStatusSub = null;
 
+    _downloadedCompleter = null;
     _confirmCompleter = null;
     _installedCompleter = null;
     _cancelRequested = false;
