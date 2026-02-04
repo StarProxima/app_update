@@ -4,11 +4,11 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:app_update/app_update.dart';
-import 'package:crypto/crypto.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'apk/apk_file_validator.dart';
 import 'apk_update_installer_config.dart';
 import 'apk_update_installer_config_parser.dart';
 import 'native/apk_installer_native.dart';
@@ -23,6 +23,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
   final Dio dio;
   final bool requireUserConfirm;
   final ApkInstallerNative _native = ApkInstallerNative();
+  final ApkFileValidator _apkFileValidator = const ApkFileValidator();
   UpdateInstallationProgress _state = const UpdateInstallationInitialized();
 
   ApkUpdateInstaller({
@@ -145,26 +146,12 @@ final class ApkUpdateInstaller implements UpdateInstaller {
       }
 
       // Validate that the downloaded file is an APK
-      final apkValidationError = await _validateApkFile(file);
-      if (apkValidationError != null) {
-        controller.add(UpdateInstallationFailed(apkValidationError));
-        await _cleanup();
-        return;
-      }
+      await _apkFileValidator.validateFormat(file);
 
       // Validate sha256 checksum
       final sha256 = config.sha256;
       if (sha256 != null) {
-        final ok = await _validateSha256(file, sha256);
-        if (!ok) {
-          controller.add(
-            const UpdateInstallationFailed(
-              'SHA-256 checksum validation failed',
-            ),
-          );
-          await _cleanup();
-          return;
-        }
+        await _apkFileValidator.validateSha256(file, sha256);
       }
 
       // Save cached file and delete old cache
@@ -312,32 +299,6 @@ final class ApkUpdateInstaller implements UpdateInstaller {
     } finally {
       _downloadCancelToken = null;
     }
-  }
-
-  /// APK is a ZIP archive, so it must start with ZIP signatures "PK"
-  Future<String?> _validateApkFile(File file) async {
-    try {
-      final raf = await file.open();
-      final header = await raf.read(16);
-      await raf.close();
-
-      if (header.length < 4) return 'Downloaded file is too small to be an APK';
-
-      final b0 = header[0];
-      final b1 = header[1];
-      final isZip = b0 == 0x50 && b1 == 0x4B; // PK
-      if (!isZip) return 'Downloaded file is not an APK (ZIP magic mismatch)';
-
-      return null;
-    } catch (e) {
-      return 'Failed to validate downloaded APK file: $e';
-    }
-  }
-
-  Future<bool> _validateSha256(File file, String expectedHex) async {
-    final normalized = expectedHex.toLowerCase();
-    final digest = await sha256.bind(file.openRead()).first;
-    return digest.toString().toLowerCase() == normalized;
   }
 
   Future<void> _runInstallApk({
