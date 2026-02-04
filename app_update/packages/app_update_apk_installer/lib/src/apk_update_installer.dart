@@ -193,6 +193,7 @@ final class ApkUpdateInstaller implements UpdateInstaller {
         FileSystemException() => 'File error: ${e.message}',
         PlatformException() =>
           'Installation failed: ${e.code}${e.message != null ? ': ${e.message}' : ''}',
+        FormatException() => 'APK file validation failed: ${e.message}',
         _ => 'APK installation failed',
       };
       controller.add(UpdateInstallationFailed(message, e, s));
