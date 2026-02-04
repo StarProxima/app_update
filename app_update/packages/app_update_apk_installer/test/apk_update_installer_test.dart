@@ -239,7 +239,7 @@ void main() {
           expect(progress, greaterThanOrEqualTo(lastProgress));
           expect(progress, lessThanOrEqualTo(1.0));
           expect(numberOfEvent, greaterThan(1));
-          lastProgress = progress;
+          lastProgress = progress ?? -1;
         case UpdateInstallationDownloaded(
           :final downloadedUpdate,
           :final isNeedConfirm,
@@ -295,7 +295,7 @@ void main() {
           expect(progress, greaterThanOrEqualTo(lastProgress));
           expect(progress, lessThanOrEqualTo(1.0));
           expect(numberOfEvent, greaterThan(1));
-          lastProgress = progress;
+          lastProgress = progress ?? -1;
         case UpdateInstallationDownloaded(
           :final downloadedUpdate,
           :final isNeedConfirm,
